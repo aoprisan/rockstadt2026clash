@@ -19,6 +19,12 @@ export function slotId(dayId: string, stage: StageId, band: string): string {
   return `${dayId}::${stage}::${band}`;
 }
 
+/** Resolve a band link: curated URL if present, otherwise a web search. */
+export function bandLink(band: string, link?: string): string {
+  if (link) return link;
+  return `https://duckduckgo.com/?q=${encodeURIComponent(`${band} band official`)}`;
+}
+
 export function buildSlots(day: FestivalDay): SetSlot[] {
   const slots: SetSlot[] = [];
   for (const stageId of STAGE_ORDER) {
@@ -30,6 +36,7 @@ export function buildSlots(day: FestivalDay): SetSlot[] {
         dayId: day.id,
         startLabel: raw.start,
         endLabel: raw.end,
+        link: bandLink(raw.band, raw.link),
         start: toMinutes(raw.start),
         end: toMinutes(raw.end),
       });
@@ -64,6 +71,7 @@ export function findClashes(slots: SetSlot[]): Clash[] {
     for (let j = i + 1; j < sorted.length; j++) {
       const a = sorted[i];
       const b = sorted[j];
+      if (a.dayId !== b.dayId) continue; // sets on different days never clash
       if (a.stage.id === b.stage.id) continue; // same stage never overlaps
       if (b.start >= a.end) break; // sorted: no later set can overlap a
       if (overlaps(a, b)) {

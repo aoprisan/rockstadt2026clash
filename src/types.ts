@@ -11,6 +11,8 @@ export interface RawSet {
   /** "HH:MM" 24h. Times before ~08:00 are treated as after midnight. */
   start: string;
   end: string;
+  /** Official website or social media URL. Falls back to a web search. */
+  link?: string;
 }
 
 export interface FestivalDay {
@@ -28,6 +30,8 @@ export interface SetSlot {
   dayId: string;
   startLabel: string;
   endLabel: string;
+  /** Official website / social link, or a web-search fallback. */
+  link: string;
   /** minutes from a fixed noon anchor, monotonic across midnight */
   start: number;
   end: number;
