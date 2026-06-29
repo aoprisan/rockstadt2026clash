@@ -104,9 +104,10 @@ function renderDayTabs(): HTMLElement {
 }
 
 function renderToolbar(): HTMLElement {
+  const wrap = el('div', 'toolbar-wrap');
   const bar = el('div', 'toolbar');
 
-  // Left group: view + reminder toggles.
+  // Left group: the primary "Only my picks" filter stays always visible.
   const toggles = el('div', 'tb-group');
 
   const pickToggle = el('label', 'switch');
@@ -121,14 +122,32 @@ function renderToolbar(): HTMLElement {
   pickToggle.appendChild(el('span', 'switch-label', 'Only my picks'));
   toggles.appendChild(pickToggle);
 
-  const notifyCtl = renderNotifyControl();
-  if (notifyCtl) toggles.appendChild(notifyCtl);
-
   bar.appendChild(toggles);
 
-  // Right group: actions.
+  // Collapsible panel: secondary reminder + calendar controls live here so
+  // they no longer crowd the top of the screen.
+  const panel = el('div', 'toolbar-options');
+  panel.id = 'toolbar-options';
+  panel.hidden = true;
+
+  const notifyCtl = renderNotifyControl();
+  if (notifyCtl) panel.appendChild(notifyCtl);
+  panel.appendChild(renderCalendarMenu());
+
+  // Right group: options disclosure + clear all.
   const actions = el('div', 'tb-group tb-actions');
-  actions.appendChild(renderCalendarMenu());
+
+  const optionsBtn = el('button', 'btn-ghost btn-options', '⚙ Options ▾');
+  optionsBtn.setAttribute('aria-haspopup', 'true');
+  optionsBtn.setAttribute('aria-expanded', 'false');
+  optionsBtn.setAttribute('aria-controls', 'toolbar-options');
+  optionsBtn.addEventListener('click', () => {
+    const open = panel.hidden;
+    panel.hidden = !open;
+    optionsBtn.setAttribute('aria-expanded', String(open));
+    optionsBtn.textContent = open ? '⚙ Options ▴' : '⚙ Options ▾';
+  });
+  actions.appendChild(optionsBtn);
 
   const clear = el('button', 'btn-ghost', 'Clear all');
   clear.addEventListener('click', () => {
@@ -138,7 +157,10 @@ function renderToolbar(): HTMLElement {
   actions.appendChild(clear);
 
   bar.appendChild(actions);
-  return bar;
+
+  wrap.appendChild(bar);
+  wrap.appendChild(panel);
+  return wrap;
 }
 
 /**
