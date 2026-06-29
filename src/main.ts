@@ -1,10 +1,14 @@
 import './style.css';
 import { mount } from './render';
+import { init as initNotifications } from './notify';
 import { registerSW } from 'virtual:pwa-register';
 
 const app = document.getElementById('app');
 if (app) {
   mount(app);
+
+  // Schedule set-start reminders for the user's picks (device-local).
+  initNotifications();
 
   const footer = document.createElement('footer');
   footer.className = 'app-footer';

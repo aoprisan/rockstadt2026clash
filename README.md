@@ -18,6 +18,10 @@ flags **clashes** — sets you've picked that overlap in time.
 - **Your schedule, saved locally** — picks persist in `localStorage`; no
   account, no tracking.
 - **"Only my picks" filter** to see just your personal line-up.
+- **Set reminders** — opt in to a notification a chosen number of minutes
+  (5/10/15/30) before each picked set starts. Scheduled on-device with no
+  backend, so reminders fire while the app is open (including an installed PWA
+  in the background).
 - **Share as image** — export your picks to a PNG and send them straight to the
   native mobile share sheet (falls back to a download on desktop).
 - **Installable & offline** — full PWA with a service worker (manifest, icons,
