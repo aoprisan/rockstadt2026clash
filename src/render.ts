@@ -50,6 +50,8 @@ export function mount(root: HTMLElement): void {
   main.id = 'content';
   root.appendChild(main);
 
+  root.appendChild(renderShareBar());
+
   selection.subscribe(() => {
     renderContent(main);
     refreshChrome();
@@ -117,6 +119,20 @@ function renderToolbar(): HTMLElement {
   const spacer = el('div', 'toolbar-spacer');
   bar.appendChild(spacer);
 
+  const clear = el('button', 'btn-ghost', 'Clear all');
+  clear.addEventListener('click', () => {
+    if (selection.size() === 0) return;
+    if (confirm('Remove all your picks?')) selection.clear();
+  });
+  bar.appendChild(clear);
+
+  return bar;
+}
+
+/** Sticky bottom bar holding the primary share actions. */
+function renderShareBar(): HTMLElement {
+  const bar = el('div', 'share-bar');
+
   const shareApp = el('button', 'btn-ghost btn-share-app', '▦ Share app');
   shareApp.setAttribute('aria-label', 'Share this app with a QR code and link');
   shareApp.addEventListener('click', () => openShareApp());
@@ -127,13 +143,6 @@ function renderToolbar(): HTMLElement {
   share.setAttribute('aria-label', 'Share your picks as an image');
   share.addEventListener('click', () => handleShare(share));
   bar.appendChild(share);
-
-  const clear = el('button', 'btn-ghost', 'Clear all');
-  clear.addEventListener('click', () => {
-    if (selection.size() === 0) return;
-    if (confirm('Remove all your picks?')) selection.clear();
-  });
-  bar.appendChild(clear);
 
   return bar;
 }
