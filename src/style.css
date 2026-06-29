@@ -232,6 +232,25 @@ body {
   flex: 1;
 }
 
+.notify-ctl {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.notify-lead {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 6px 8px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.notify-lead[hidden] {
+  display: none;
+}
+
 .btn-ghost {
   background: transparent;
   border: 1px solid var(--line);

@@ -10,6 +10,7 @@ import {
 import { selection, loadActiveDay, saveActiveDay } from './store';
 import { shareSelection } from './share';
 import { openShareApp } from './share-app';
+import * as notify from './notify';
 
 const PX_PER_MIN = 1.7;
 const HEADER_OFFSET = 0;
@@ -119,6 +120,9 @@ function renderToolbar(): HTMLElement {
   const spacer = el('div', 'toolbar-spacer');
   bar.appendChild(spacer);
 
+  const notifyCtl = renderNotifyControl();
+  if (notifyCtl) bar.appendChild(notifyCtl);
+
   const clear = el('button', 'btn-ghost', 'Clear all');
   clear.addEventListener('click', () => {
     if (selection.size() === 0) return;
@@ -127,6 +131,55 @@ function renderToolbar(): HTMLElement {
   bar.appendChild(clear);
 
   return bar;
+}
+
+/**
+ * "Remind me" toggle plus a lead-time selector. Returns null on platforms
+ * without the Notification API so the toolbar stays clean.
+ */
+function renderNotifyControl(): HTMLElement | null {
+  if (!notify.notificationsSupported()) return null;
+
+  const wrap = el('div', 'notify-ctl');
+
+  const toggle = el('label', 'switch');
+  toggle.title = 'Get a reminder before each picked set starts';
+  const cb = el('input') as HTMLInputElement;
+  cb.type = 'checkbox';
+  cb.checked = notify.isEnabled();
+
+  const lead = el('select', 'notify-lead') as HTMLSelectElement;
+  lead.setAttribute('aria-label', 'Remind me this many minutes before a set');
+  for (const min of notify.LEAD_OPTIONS) {
+    const opt = el('option') as HTMLOptionElement;
+    opt.value = String(min);
+    opt.textContent = `${min} min before`;
+    if (min === notify.leadMinutes()) opt.selected = true;
+    lead.appendChild(opt);
+  }
+  lead.hidden = !cb.checked;
+  lead.addEventListener('change', () => notify.setLeadMinutes(Number(lead.value)));
+
+  cb.addEventListener('change', async () => {
+    const wanted = cb.checked;
+    const ok = await notify.setEnabled(wanted);
+    cb.checked = ok;
+    lead.hidden = !ok;
+    if (wanted && !ok) {
+      alert(
+        notify.permission() === 'denied'
+          ? 'Notifications are blocked for this site. Enable them in your browser settings to get set reminders.'
+          : 'Could not enable notifications on this device.',
+      );
+    }
+  });
+
+  toggle.appendChild(cb);
+  toggle.appendChild(el('span', 'switch-track'));
+  toggle.appendChild(el('span', 'switch-label', '🔔 Remind me'));
+  wrap.appendChild(toggle);
+  wrap.appendChild(lead);
+  return wrap;
 }
 
 /** Sticky bottom bar holding the primary share actions. */
