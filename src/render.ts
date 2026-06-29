@@ -10,6 +10,7 @@ import {
 import { selection, loadActiveDay, saveActiveDay } from './store';
 import { shareSelection } from './share';
 import { openShareApp } from './share-app';
+import { exportCalendar } from './calendar';
 import * as notify from './notify';
 
 const PX_PER_MIN = 1.7;
@@ -123,6 +124,13 @@ function renderToolbar(): HTMLElement {
   const notifyCtl = renderNotifyControl();
   if (notifyCtl) bar.appendChild(notifyCtl);
 
+  const cal = el('button', 'btn-ghost btn-calendar', '📅 Calendar');
+  cal.id = 'calendar-btn';
+  cal.title = 'Add your picks to your calendar with reminders before each set';
+  cal.setAttribute('aria-label', 'Add your picks to your calendar with set reminders');
+  cal.addEventListener('click', () => handleCalendar(cal));
+  bar.appendChild(cal);
+
   const clear = el('button', 'btn-ghost', 'Clear all');
   clear.addEventListener('click', () => {
     if (selection.size() === 0) return;
@@ -224,6 +232,23 @@ async function handleShare(btn: HTMLButtonElement): Promise<void> {
   }
 }
 
+async function handleCalendar(btn: HTMLButtonElement): Promise<void> {
+  if (selection.size() === 0 || btn.disabled) return;
+  const original = btn.textContent;
+  btn.disabled = true;
+  try {
+    const { outcome } = await exportCalendar();
+    btn.textContent = outcome === 'downloaded' ? 'Saved .ics ✓' : original;
+  } catch {
+    btn.textContent = 'Export failed';
+  } finally {
+    setTimeout(() => {
+      btn.textContent = original;
+      btn.disabled = selection.size() === 0;
+    }, 1600);
+  }
+}
+
 function refreshChrome(): void {
   document.querySelectorAll<HTMLButtonElement>('.day-tab').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.day === activeDayId);
@@ -233,6 +258,9 @@ function refreshChrome(): void {
   if (shareBtn && !shareBtn.classList.contains('busy')) {
     shareBtn.disabled = selection.size() === 0;
   }
+
+  const calBtn = document.getElementById('calendar-btn') as HTMLButtonElement | null;
+  if (calBtn) calBtn.disabled = selection.size() === 0;
 
   const stats = document.getElementById('header-stats');
   if (stats) {

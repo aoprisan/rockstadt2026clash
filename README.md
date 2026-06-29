@@ -20,8 +20,12 @@ flags **clashes** — sets you've picked that overlap in time.
 - **"Only my picks" filter** to see just your personal line-up.
 - **Set reminders** — opt in to a notification a chosen number of minutes
   (5/10/15/30) before each picked set starts. Scheduled on-device with no
-  backend, so reminders fire while the app is open (including an installed PWA
-  in the background).
+  backend, so the in-app notification fires while the app is open.
+- **Add to calendar** — export your picks as an `.ics` file with an alarm
+  before every set. Your phone's native calendar then reminds you reliably
+  **even when the app is fully closed** — offline and cross-platform, still no
+  backend. Times are emitted in UTC (the festival sits in UTC+3) so they land
+  correctly whatever timezone your device is in.
 - **Share as image** — export your picks to a PNG and send them straight to the
   native mobile share sheet (falls back to a download on desktop).
 - **Installable & offline** — full PWA with a service worker (manifest, icons,
