@@ -18,6 +18,8 @@ flags **clashes** — sets you've picked that overlap in time.
 - **Your schedule, saved locally** — picks persist in `localStorage`; no
   account, no tracking.
 - **"Only my picks" filter** to see just your personal line-up.
+- **Share as image** — export your picks to a PNG and send them straight to the
+  native mobile share sheet (falls back to a download on desktop).
 - **Installable & offline** — full PWA with a service worker (manifest, icons,
   offline caching) so it works on the festival grounds with patchy signal.
 

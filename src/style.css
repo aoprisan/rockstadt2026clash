@@ -224,6 +224,23 @@ body {
 .btn-ghost:active {
   background: var(--panel);
 }
+.btn-ghost:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-share {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--brasov) 55%, var(--line));
+  background: color-mix(in srgb, var(--brasov) 16%, transparent);
+}
+.btn-share:not(:disabled):active {
+  background: color-mix(in srgb, var(--brasov) 28%, transparent);
+}
+.btn-share.busy {
+  opacity: 0.75;
+  cursor: progress;
+}
 
 /* ---------- clash panel ---------- */
 .clash-panel {
