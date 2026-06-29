@@ -8,6 +8,7 @@ import {
   getSlot,
 } from './schedule';
 import { selection, loadActiveDay, saveActiveDay } from './store';
+import { shareSelection } from './share';
 
 const PX_PER_MIN = 1.7;
 const HEADER_OFFSET = 0;
@@ -115,6 +116,12 @@ function renderToolbar(): HTMLElement {
   const spacer = el('div', 'toolbar-spacer');
   bar.appendChild(spacer);
 
+  const share = el('button', 'btn-ghost btn-share', '⤴ Share');
+  share.id = 'share-btn';
+  share.setAttribute('aria-label', 'Share your picks as an image');
+  share.addEventListener('click', () => handleShare(share));
+  bar.appendChild(share);
+
   const clear = el('button', 'btn-ghost', 'Clear all');
   clear.addEventListener('click', () => {
     if (selection.size() === 0) return;
@@ -125,10 +132,39 @@ function renderToolbar(): HTMLElement {
   return bar;
 }
 
+async function handleShare(btn: HTMLButtonElement): Promise<void> {
+  if (selection.size() === 0 || btn.disabled) return;
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.classList.add('busy');
+  btn.textContent = 'Preparing…';
+  try {
+    const { outcome } = await shareSelection();
+    if (outcome === 'downloaded') {
+      btn.textContent = 'Saved image ✓';
+    } else {
+      btn.textContent = original;
+    }
+  } catch {
+    btn.textContent = 'Share failed';
+  } finally {
+    setTimeout(() => {
+      btn.disabled = selection.size() === 0;
+      btn.classList.remove('busy');
+      btn.textContent = original;
+    }, 1600);
+  }
+}
+
 function refreshChrome(): void {
   document.querySelectorAll<HTMLButtonElement>('.day-tab').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.day === activeDayId);
   });
+
+  const shareBtn = document.getElementById('share-btn') as HTMLButtonElement | null;
+  if (shareBtn && !shareBtn.classList.contains('busy')) {
+    shareBtn.disabled = selection.size() === 0;
+  }
 
   const stats = document.getElementById('header-stats');
   if (stats) {
