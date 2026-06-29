@@ -10,6 +10,7 @@ import {
 import { selection, loadActiveDay, saveActiveDay } from './store';
 import { shareSelection } from './share';
 import { openShareApp } from './share-app';
+import { exportCalendar, clearCalendar, hasExported } from './calendar';
 import * as notify from './notify';
 
 const PX_PER_MIN = 1.7;
@@ -105,6 +106,9 @@ function renderDayTabs(): HTMLElement {
 function renderToolbar(): HTMLElement {
   const bar = el('div', 'toolbar');
 
+  // Left group: view + reminder toggles.
+  const toggles = el('div', 'tb-group');
+
   const pickToggle = el('label', 'switch');
   const cb = el('input') as HTMLInputElement;
   cb.type = 'checkbox';
@@ -115,22 +119,83 @@ function renderToolbar(): HTMLElement {
   pickToggle.appendChild(cb);
   pickToggle.appendChild(el('span', 'switch-track'));
   pickToggle.appendChild(el('span', 'switch-label', 'Only my picks'));
-  bar.appendChild(pickToggle);
-
-  const spacer = el('div', 'toolbar-spacer');
-  bar.appendChild(spacer);
+  toggles.appendChild(pickToggle);
 
   const notifyCtl = renderNotifyControl();
-  if (notifyCtl) bar.appendChild(notifyCtl);
+  if (notifyCtl) toggles.appendChild(notifyCtl);
+
+  bar.appendChild(toggles);
+
+  // Right group: actions.
+  const actions = el('div', 'tb-group tb-actions');
+  actions.appendChild(renderCalendarMenu());
 
   const clear = el('button', 'btn-ghost', 'Clear all');
   clear.addEventListener('click', () => {
     if (selection.size() === 0) return;
     if (confirm('Remove all your picks?')) selection.clear();
   });
-  bar.appendChild(clear);
+  actions.appendChild(clear);
 
+  bar.appendChild(actions);
   return bar;
+}
+
+/**
+ * "📅 Calendar" button with a small Add / Remove menu. Add exports the current
+ * picks with reminders; Remove cancels the events previously exported.
+ */
+function renderCalendarMenu(): HTMLElement {
+  const wrap = el('div', 'cal-wrap');
+
+  const btn = el('button', 'btn-ghost btn-calendar', '📅 Calendar ▾');
+  btn.id = 'calendar-btn';
+  btn.setAttribute('aria-haspopup', 'true');
+  btn.setAttribute('aria-expanded', 'false');
+
+  const menu = el('div', 'cal-menu');
+  menu.hidden = true;
+
+  const add = el('button', 'cal-menu-item', 'Add to calendar');
+  add.title = 'Add your picks with a reminder before each set';
+  add.addEventListener('click', () => {
+    close();
+    void handleCalendar('add');
+  });
+
+  const remove = el('button', 'cal-menu-item', 'Remove from calendar');
+  remove.title = 'Cancel the festival events you previously added';
+  remove.addEventListener('click', () => {
+    close();
+    void handleCalendar('remove');
+  });
+
+  menu.appendChild(add);
+  menu.appendChild(remove);
+
+  function close(): void {
+    menu.hidden = true;
+    btn.setAttribute('aria-expanded', 'false');
+  }
+  function open(): void {
+    add.disabled = selection.size() === 0;
+    remove.disabled = !hasExported();
+    menu.hidden = false;
+    btn.setAttribute('aria-expanded', 'true');
+  }
+
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    menu.hidden ? open() : close();
+  });
+  document.addEventListener('click', close);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') close();
+  });
+
+  wrap.appendChild(btn);
+  wrap.appendChild(menu);
+  return wrap;
 }
 
 /**
@@ -224,6 +289,30 @@ async function handleShare(btn: HTMLButtonElement): Promise<void> {
   }
 }
 
+async function handleCalendar(mode: 'add' | 'remove'): Promise<void> {
+  const btn = document.getElementById('calendar-btn') as HTMLButtonElement | null;
+  if (!btn) return;
+  const original = btn.textContent;
+  btn.disabled = true;
+  try {
+    const { outcome } = mode === 'add' ? await exportCalendar() : await clearCalendar();
+    if (outcome === 'empty') {
+      btn.textContent = mode === 'add' ? 'No picks yet' : 'Nothing to remove';
+    } else if (outcome === 'downloaded') {
+      btn.textContent = mode === 'add' ? 'Saved .ics ✓' : 'Saved remove ✓';
+    } else {
+      btn.textContent = mode === 'add' ? 'Added ✓' : 'Removed ✓';
+    }
+  } catch {
+    btn.textContent = mode === 'add' ? 'Export failed' : 'Remove failed';
+  } finally {
+    setTimeout(() => {
+      btn.textContent = original;
+      btn.disabled = false;
+    }, 1600);
+  }
+}
+
 function refreshChrome(): void {
   document.querySelectorAll<HTMLButtonElement>('.day-tab').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.day === activeDayId);
@@ -233,6 +322,7 @@ function refreshChrome(): void {
   if (shareBtn && !shareBtn.classList.contains('busy')) {
     shareBtn.disabled = selection.size() === 0;
   }
+
 
   const stats = document.getElementById('header-stats');
   if (stats) {
