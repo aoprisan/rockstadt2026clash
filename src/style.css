@@ -591,23 +591,37 @@ body {
 }
 .set-link {
   position: absolute;
-  bottom: 3px;
+  bottom: 4px;
   right: 4px;
-  font-size: 0.72rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.6rem;
   line-height: 1;
   font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   text-decoration: none;
-  color: var(--muted);
-  padding: 2px 3px;
-  border-radius: 5px;
-  background: color-mix(in srgb, var(--panel) 70%, transparent);
+  color: #fff;
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: var(--stage);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  transition: transform 0.1s, box-shadow 0.12s, filter 0.12s;
+}
+.set-link .set-link-icon {
+  font-size: 0.72rem;
 }
 .set-link:hover {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.16);
+  filter: brightness(1.12);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+.set-link:active {
+  transform: scale(0.94);
 }
 .set.picked .set-link {
-  color: rgba(255, 255, 255, 0.9);
+  background: #fff;
+  color: var(--stage);
 }
 
 /* ---------- empty ---------- */

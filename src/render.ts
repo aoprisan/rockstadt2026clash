@@ -361,11 +361,13 @@ function renderSlot(slot: SetSlot, top: number, clashing: Set<string>): HTMLElem
   if (isClash) node.appendChild(el('span', 'set-flag', '⚠'));
   else if (picked) node.appendChild(el('span', 'set-flag check', '✓'));
 
-  const link = el('a', 'set-link', '↗');
+  const link = el('a', 'set-link');
+  link.appendChild(el('span', 'set-link-label', 'Info'));
+  link.appendChild(el('span', 'set-link-icon', '↗'));
   link.setAttribute('href', slot.link);
   link.setAttribute('target', '_blank');
   link.setAttribute('rel', 'noopener noreferrer');
-  link.setAttribute('aria-label', `Open ${slot.band} website`);
+  link.setAttribute('aria-label', `Open ${slot.band} info`);
   link.addEventListener('click', (e) => e.stopPropagation());
   node.appendChild(link);
 
