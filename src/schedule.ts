@@ -64,6 +64,7 @@ export function findClashes(slots: SetSlot[]): Clash[] {
     for (let j = i + 1; j < sorted.length; j++) {
       const a = sorted[i];
       const b = sorted[j];
+      if (a.dayId !== b.dayId) continue; // sets on different days never clash
       if (a.stage.id === b.stage.id) continue; // same stage never overlaps
       if (b.start >= a.end) break; // sorted: no later set can overlap a
       if (overlaps(a, b)) {
