@@ -160,6 +160,15 @@ function renderContent(main: HTMLElement): void {
   main.appendChild(renderTimeline(slots, clashing));
 }
 
+function clashBandLink(slot: SetSlot): HTMLAnchorElement {
+  const a = el('a', 'clash-band', slot.band);
+  a.style.setProperty('--c', slot.stage.color);
+  a.href = slot.link;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  return a;
+}
+
 function renderClashSummary(day: FestivalDay): HTMLElement {
   const panel = el('section', 'clash-panel');
   const dayClashes = findClashes(selectedSlots()).filter(
@@ -200,12 +209,8 @@ function renderClashSummary(day: FestivalDay): HTMLElement {
   const list = el('ul', 'clash-list');
   for (const c of dayClashes) {
     const li = el('li', 'clash-item');
-    const a = el('span', 'clash-band');
-    a.style.setProperty('--c', c.a.stage.color);
-    a.textContent = c.a.band;
-    const b = el('span', 'clash-band');
-    b.style.setProperty('--c', c.b.stage.color);
-    b.textContent = c.b.band;
+    const a = clashBandLink(c.a);
+    const b = clashBandLink(c.b);
     li.appendChild(a);
     li.appendChild(el('span', 'clash-vs', 'vs'));
     li.appendChild(b);
@@ -313,6 +318,14 @@ function renderSlot(slot: SetSlot, top: number, clashing: Set<string>): HTMLElem
 
   if (isClash) node.appendChild(el('span', 'set-flag', '⚠'));
   else if (picked) node.appendChild(el('span', 'set-flag check', '✓'));
+
+  const link = el('a', 'set-link', '↗');
+  link.setAttribute('href', slot.link);
+  link.setAttribute('target', '_blank');
+  link.setAttribute('rel', 'noopener noreferrer');
+  link.setAttribute('aria-label', `Open ${slot.band} website`);
+  link.addEventListener('click', (e) => e.stopPropagation());
+  node.appendChild(link);
 
   node.addEventListener('click', () => selection.toggle(slot.id));
   return node;
