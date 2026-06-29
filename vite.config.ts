@@ -20,8 +20,8 @@ export default defineConfig({
         start_url: base,
         display: 'standalone',
         orientation: 'portrait',
-        background_color: '#0b0a18',
-        theme_color: '#0b0a18',
+        background_color: '#0a0a0c',
+        theme_color: '#0a0a0c',
         lang: 'en',
         categories: ['music', 'events', 'lifestyle'],
         icons: [

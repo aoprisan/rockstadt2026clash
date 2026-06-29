@@ -1,11 +1,13 @@
 :root {
-  --bg: #0b0a18;
-  --bg-2: #14122b;
-  --panel: #1a1736;
-  --panel-2: #211d44;
-  --line: #2c2856;
-  --text: #f3f1fb;
-  --muted: #a39fc6;
+  --bg: #0a0a0c;
+  --bg-2: #111114;
+  --panel: #17171c;
+  --panel-2: #1f1f26;
+  --line: #2e2e38;
+  --text: #f5f3ea;
+  --muted: #a6a299;
+  --accent: #d8c27e;
+  --accent-2: #b8924a;
   --rugina: #7ec524;
   --brasov: #c026d3;
   --calmuc: #e2761b;
@@ -26,7 +28,7 @@ body {
 }
 
 body {
-  background: radial-gradient(120% 80% at 50% -10%, #1d1a3d 0%, var(--bg) 55%) fixed;
+  background: radial-gradient(120% 80% at 50% -10%, #1c1708 0%, var(--bg) 55%) fixed;
   color: var(--text);
   font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -57,7 +59,7 @@ body {
   letter-spacing: 0.5px;
   text-transform: uppercase;
   line-height: 1.1;
-  background: linear-gradient(90deg, var(--rugina), var(--brasov) 55%, var(--calmuc));
+  background: linear-gradient(90deg, #ece0b4, var(--accent) 50%, var(--accent-2));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -148,8 +150,8 @@ body {
   opacity: 0.8;
 }
 .day-tab.active {
-  color: #0b0a18;
-  background: linear-gradient(135deg, #ffffff, #d9d6f5);
+  color: #0a0a0c;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
   border-color: transparent;
 }
 
@@ -213,12 +215,12 @@ body {
   transition: transform 0.15s, background 0.15s;
 }
 .switch input:checked + .switch-track {
-  background: color-mix(in srgb, var(--brasov) 50%, var(--panel-2));
-  border-color: var(--brasov);
+  background: color-mix(in srgb, var(--accent) 55%, var(--panel-2));
+  border-color: var(--accent);
 }
 .switch input:checked + .switch-track::after {
   transform: translateX(16px);
-  background: #fff;
+  background: #0a0a0c;
 }
 .switch-label {
   font-size: 0.82rem;
@@ -250,11 +252,11 @@ body {
 
 .btn-share {
   color: var(--text);
-  border-color: color-mix(in srgb, var(--brasov) 55%, var(--line));
-  background: color-mix(in srgb, var(--brasov) 16%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
 }
 .btn-share:not(:disabled):active {
-  background: color-mix(in srgb, var(--brasov) 28%, transparent);
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
 }
 .btn-share.busy {
   opacity: 0.75;
@@ -338,7 +340,7 @@ body {
   margin: 14px 0 16px;
   font-size: 0.8rem;
   font-weight: 700;
-  color: var(--rugina);
+  color: var(--accent);
   word-break: break-all;
 }
 .share-app-actions {
@@ -362,8 +364,8 @@ body {
 }
 .share-app-btn.primary {
   border-color: transparent;
-  background: linear-gradient(135deg, var(--brasov), var(--calmuc));
-  color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #0a0a0c;
 }
 
 /* ---------- clash panel ---------- */
@@ -493,7 +495,7 @@ body {
   letter-spacing: 0.4px;
   padding: 6px 2px;
   border-radius: 9px;
-  color: #0b0a18;
+  color: #0a0a0c;
   background: var(--stage);
   line-height: 1.1;
 }
@@ -668,7 +670,7 @@ body {
   line-height: 1.5;
 }
 .app-footer a {
-  color: var(--brasov);
+  color: var(--accent);
 }
 
 #install-btn {
@@ -683,8 +685,8 @@ body {
   padding: 11px 18px;
   border: none;
   border-radius: 999px;
-  background: linear-gradient(135deg, var(--brasov), var(--calmuc));
-  color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #0a0a0c;
   font-weight: 700;
   font-size: 0.85rem;
   cursor: pointer;
