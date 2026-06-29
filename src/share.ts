@@ -3,7 +3,7 @@ import type { SetSlot } from './types';
 import { clashingIds, findClashes, getSlot } from './schedule';
 import { selection } from './store';
 
-const SHARE_URL = 'https://aoprisan.github.io/rockstadt2026clash/';
+export const SHARE_URL = 'https://aoprisan.github.io/rockstadt2026clash/';
 const FILE_NAME = 'rockstadt-2026-picks.png';
 
 const COLORS = {
