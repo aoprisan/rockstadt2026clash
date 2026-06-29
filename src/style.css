@@ -242,6 +242,111 @@ body {
   cursor: progress;
 }
 
+.btn-share-app {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--rugina) 55%, var(--line));
+  background: color-mix(in srgb, var(--rugina) 14%, transparent);
+}
+.btn-share-app:active {
+  background: color-mix(in srgb, var(--rugina) 26%, transparent);
+}
+
+/* ---------- share-app dialog ---------- */
+.share-app {
+  border: none;
+  background: transparent;
+  padding: 0;
+  max-width: 360px;
+  width: calc(100% - 32px);
+  color: var(--text);
+}
+.share-app::backdrop {
+  background: rgba(8, 7, 20, 0.72);
+  backdrop-filter: blur(3px);
+}
+.share-app-card {
+  position: relative;
+  padding: 22px 22px 18px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: linear-gradient(160deg, var(--panel-2), var(--panel));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  text-align: center;
+}
+.share-app-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.share-app-close:active {
+  background: var(--line);
+}
+.share-app-title {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+.share-app-sub {
+  margin: 0 auto 16px;
+  max-width: 260px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.share-app-qr {
+  width: 200px;
+  height: 200px;
+  margin: 0 auto;
+  padding: 12px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+.share-app-qr svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.share-app-link {
+  margin: 14px 0 16px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--rugina);
+  word-break: break-all;
+}
+.share-app-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+.share-app-btn {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.share-app-btn:active {
+  background: var(--line);
+}
+.share-app-btn.primary {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--brasov), var(--calmuc));
+  color: #fff;
+}
+
 /* ---------- clash panel ---------- */
 .clash-panel {
   margin: 0 16px 12px;

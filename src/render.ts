@@ -9,6 +9,7 @@ import {
 } from './schedule';
 import { selection, loadActiveDay, saveActiveDay } from './store';
 import { shareSelection } from './share';
+import { openShareApp } from './share-app';
 
 const PX_PER_MIN = 1.7;
 const HEADER_OFFSET = 0;
@@ -115,6 +116,11 @@ function renderToolbar(): HTMLElement {
 
   const spacer = el('div', 'toolbar-spacer');
   bar.appendChild(spacer);
+
+  const shareApp = el('button', 'btn-ghost btn-share-app', '▦ Share app');
+  shareApp.setAttribute('aria-label', 'Share this app with a QR code and link');
+  shareApp.addEventListener('click', () => openShareApp());
+  bar.appendChild(shareApp);
 
   const share = el('button', 'btn-ghost btn-share', '⤴ Share');
   share.id = 'share-btn';
