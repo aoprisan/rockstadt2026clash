@@ -8,9 +8,15 @@ import type { SetSlot } from './types';
  * Export the user's picks as an `.ics` calendar with a per-set alarm, so the
  * device's native calendar reminds them before each set — reliably, even when
  * this app is fully closed, offline, on any platform. No backend required.
+ *
+ * A matching CANCEL export lets the user pull those events back out of their
+ * calendar again. We remember which sets were exported (by UID) so removal
+ * works even after the picks themselves have changed.
  */
 
-const FILE_NAME = 'rockstadt-2026-picks.ics';
+const ADD_FILE = 'rockstadt-2026-picks.ics';
+const CANCEL_FILE = 'rockstadt-2026-remove.ics';
+const EXPORTED_KEY = 'ref2026.cal.exported.v1';
 
 const dayDate = new Map(DAYS.map((d) => [d.id, d.date]));
 
@@ -47,49 +53,54 @@ function slug(s: string): string {
     .replace(/(^-|-$)/g, '');
 }
 
-function vevent(slot: SetSlot, lead: number, stamp: string): string | null {
+function uidOf(slot: SetSlot): string {
+  return `${slot.dayId}-${slot.stage.id}-${slug(slot.band)}@rockstadt2026clash`;
+}
+
+function vevent(
+  slot: SetSlot,
+  opts: { cancel: boolean; lead: number; stamp: string },
+): string | null {
   const start = toUtc(slot.dayId, slot.startLabel);
   const end = toUtc(slot.dayId, slot.endLabel);
   if (!start || !end) return null;
 
-  const uid = `${slot.dayId}-${slot.stage.id}-${slug(slot.band)}@rockstadt2026clash`;
-  return [
+  const lines = [
     'BEGIN:VEVENT',
-    `UID:${uid}`,
-    `DTSTAMP:${stamp}`,
+    `UID:${uidOf(slot)}`,
+    `DTSTAMP:${opts.stamp}`,
     `DTSTART:${stampOf(start)}`,
     `DTEND:${stampOf(end)}`,
     `SUMMARY:${esc(slot.band)}`,
     `LOCATION:${esc(slot.stage.name)}`,
-    `DESCRIPTION:${esc(`${FESTIVAL.name} — ${slot.stage.name}`)}`,
-    'BEGIN:VALARM',
-    'ACTION:DISPLAY',
-    `DESCRIPTION:${esc(`${slot.band} starts in ${lead} min`)}`,
-    `TRIGGER:-PT${lead}M`,
-    'END:VALARM',
-    'END:VEVENT',
-  ].join('\r\n');
+  ];
+
+  if (opts.cancel) {
+    // Higher SEQUENCE + CANCELLED status tells the calendar to drop the event.
+    lines.push('STATUS:CANCELLED', 'SEQUENCE:1');
+  } else {
+    lines.push(
+      `DESCRIPTION:${esc(`${FESTIVAL.name} — ${slot.stage.name}`)}`,
+      'SEQUENCE:0',
+      'BEGIN:VALARM',
+      'ACTION:DISPLAY',
+      `DESCRIPTION:${esc(`${slot.band} starts in ${opts.lead} min`)}`,
+      `TRIGGER:-PT${opts.lead}M`,
+      'END:VALARM',
+    );
+  }
+
+  lines.push('END:VEVENT');
+  return lines.join('\r\n');
 }
 
-/** Build the `.ics` text for the current selection, or null if empty. */
-export function buildIcs(): string | null {
-  const lead = leadMinutes();
-  const stamp = stampOf(new Date());
-  const events = selection
-    .ids()
-    .map((id) => getSlot(id))
-    .filter((s): s is SetSlot => Boolean(s))
-    .map((s) => vevent(s, lead, stamp))
-    .filter((v): v is string => Boolean(v));
-
-  if (events.length === 0) return null;
-
+function wrapCalendar(method: 'PUBLISH' | 'CANCEL', events: string[]): string {
   return [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'PRODID:-//rockstadt2026clash//Clashfinder//EN',
     'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
+    `METHOD:${method}`,
     `X-WR-CALNAME:${esc(`${FESTIVAL.name} 2026 — my picks`)}`,
     ...events,
     'END:VCALENDAR',
@@ -97,26 +108,76 @@ export function buildIcs(): string | null {
   ].join('\r\n');
 }
 
+function slotsFromIds(ids: string[]): SetSlot[] {
+  return ids.map((id) => getSlot(id)).filter((s): s is SetSlot => Boolean(s));
+}
+
+function loadExported(): Set<string> {
+  try {
+    const raw = localStorage.getItem(EXPORTED_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(parsed) ? parsed.filter((x) => typeof x === 'string') : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function rememberExported(ids: string[]): void {
+  try {
+    const set = loadExported();
+    ids.forEach((id) => set.add(id));
+    localStorage.setItem(EXPORTED_KEY, JSON.stringify([...set]));
+  } catch {
+    /* ignore */
+  }
+}
+
+function forgetExported(): void {
+  try {
+    localStorage.removeItem(EXPORTED_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** True when at least one set has been exported and not yet removed. */
+export function hasExported(): boolean {
+  return slotsFromIds([...loadExported()]).length > 0;
+}
+
+/** Build the add `.ics` for the current selection, or null if empty. */
+export function buildAddIcs(): string | null {
+  const lead = leadMinutes();
+  const stamp = stampOf(new Date());
+  const events = slotsFromIds(selection.ids())
+    .map((s) => vevent(s, { cancel: false, lead, stamp }))
+    .filter((v): v is string => Boolean(v));
+  return events.length ? wrapCalendar('PUBLISH', events) : null;
+}
+
+/** Build the cancel `.ics` for everything exported so far, or null if none. */
+export function buildCancelIcs(): string | null {
+  const stamp = stampOf(new Date());
+  const events = slotsFromIds([...loadExported()])
+    .map((s) => vevent(s, { cancel: true, lead: 0, stamp }))
+    .filter((v): v is string => Boolean(v));
+  return events.length ? wrapCalendar('CANCEL', events) : null;
+}
+
 export interface CalendarResult {
   outcome: 'shared' | 'downloaded' | 'empty';
 }
 
-/**
- * Hand the `.ics` to the OS: the native share sheet on mobile (so the user can
- * drop it straight into their calendar), or a file download elsewhere.
- */
-export async function exportCalendar(): Promise<CalendarResult> {
-  const ics = buildIcs();
-  if (!ics) return { outcome: 'empty' };
-
+/** Hand an `.ics` blob to the OS share sheet (mobile) or a download (desktop). */
+async function deliver(ics: string, fileName: string, title: string): Promise<CalendarResult> {
   const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
-  const file = new File([blob], FILE_NAME, { type: 'text/calendar' });
+  const file = new File([blob], fileName, { type: 'text/calendar' });
 
   const nav = navigator as Navigator & {
     canShare?: (data?: ShareData) => boolean;
     share?: (data: ShareData) => Promise<void>;
   };
-  const shareData: ShareData = { files: [file], title: `${FESTIVAL.name} 2026 — my picks` };
+  const shareData: ShareData = { files: [file], title };
 
   if (typeof nav.canShare === 'function' && nav.canShare(shareData) && nav.share) {
     try {
@@ -134,10 +195,28 @@ export async function exportCalendar(): Promise<CalendarResult> {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = FILE_NAME;
+  a.download = fileName;
   document.body.appendChild(a);
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   return { outcome: 'downloaded' };
+}
+
+/** Export the current picks to the calendar (with reminders). */
+export async function exportCalendar(): Promise<CalendarResult> {
+  const ics = buildAddIcs();
+  if (!ics) return { outcome: 'empty' };
+  const result = await deliver(ics, ADD_FILE, `${FESTIVAL.name} 2026 — my picks`);
+  rememberExported(selection.ids());
+  return result;
+}
+
+/** Remove the previously-exported events from the calendar. */
+export async function clearCalendar(): Promise<CalendarResult> {
+  const ics = buildCancelIcs();
+  if (!ics) return { outcome: 'empty' };
+  const result = await deliver(ics, CANCEL_FILE, `${FESTIVAL.name} 2026 — remove`);
+  forgetExported();
+  return result;
 }

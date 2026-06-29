@@ -159,9 +159,20 @@ body {
 .toolbar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 10px 14px;
   padding: 4px 16px 12px;
+}
+
+.tb-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
+.tb-actions {
+  margin-left: auto;
 }
 
 .share-bar {
@@ -227,6 +238,7 @@ body {
   font-size: 0.82rem;
   color: var(--muted);
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .toolbar-spacer {
@@ -246,10 +258,56 @@ body {
   padding: 6px 8px;
   font-size: 0.76rem;
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
 }
 .notify-lead[hidden] {
   display: none;
+}
+
+/* ---------- calendar menu ---------- */
+.cal-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.btn-calendar {
+  white-space: nowrap;
+}
+.cal-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  min-width: 210px;
+  padding: 6px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+}
+.cal-menu[hidden] {
+  display: none;
+}
+.cal-menu-item {
+  text-align: left;
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 10px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.cal-menu-item:hover,
+.cal-menu-item:active {
+  background: var(--panel-2);
+}
+.cal-menu-item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .btn-ghost {
@@ -260,6 +318,7 @@ body {
   padding: 7px 12px;
   font-size: 0.78rem;
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
 }
 .btn-ghost:active {
