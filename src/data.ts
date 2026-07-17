@@ -34,7 +34,7 @@ export const DAYS: FestivalDay[] = [
       ],
       calmuc: [
         { band: 'Necrotted', start: '15:10', end: '15:55' },
-        { band: 'Panzerfaust', start: '16:25', end: '17:10' },
+        { band: 'Groza', start: '16:25', end: '17:10' },
         { band: 'Hackneyed', start: '17:40', end: '18:30' },
         { band: 'Vended', start: '19:00', end: '20:00' },
         { band: 'Majestica', start: '20:30', end: '21:30' },
