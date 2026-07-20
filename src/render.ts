@@ -10,6 +10,7 @@ import {
 import { selection, loadActiveDay, saveActiveDay } from './store';
 import { shareSelection } from './share';
 import { openShareApp } from './share-app';
+import { openMap } from './map';
 import { exportCalendar, clearCalendar, hasExported } from './calendar';
 import * as notify from './notify';
 
@@ -272,6 +273,11 @@ function renderNotifyControl(): HTMLElement | null {
 /** Sticky bottom bar holding the primary share actions. */
 function renderShareBar(): HTMLElement {
   const bar = el('div', 'share-bar');
+
+  const map = el('button', 'btn-ghost btn-map', '🗺 Map');
+  map.setAttribute('aria-label', 'Open the festival site map');
+  map.addEventListener('click', () => openMap());
+  bar.appendChild(map);
 
   const shareApp = el('button', 'btn-ghost btn-share-app', '▦ Share app');
   shareApp.setAttribute('aria-label', 'Share this app with a QR code and link');
