@@ -1561,8 +1561,32 @@ body {
   border-radius: var(--radius);
   background: var(--panel);
 }
+.stats-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.stats-toggle-chevron {
+  color: var(--accent);
+  font-size: 0.7rem;
+}
+.stats-body {
+  margin-top: 12px;
+  animation: options-in 0.15s ease;
+}
+.stats-body[hidden] {
+  display: none;
+}
 .stats-title {
-  margin: 0 0 12px;
+  margin: 0;
   font-family: var(--font-display);
   font-size: 1rem;
   font-weight: 600;

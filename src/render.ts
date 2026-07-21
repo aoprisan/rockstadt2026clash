@@ -46,6 +46,9 @@ let onlyPicks = false;
 // The filters / picks / clashes panel under the day tabs is folded away by
 // default; the header keeps showing live pick + clash counts while it's closed.
 let controlsOpen = false;
+// The "Your festival" stats panel at the foot of the schedule is likewise
+// collapsed by default.
+let statsOpen = false;
 let bannerDismissed = false;
 
 const el = <K extends keyof HTMLElementTagNameMap>(
@@ -913,7 +916,27 @@ function renderStats(): HTMLElement | null {
   if (s.picks === 0) return null;
 
   const panel = el('section', 'stats-panel');
-  panel.appendChild(el('h2', 'stats-title', 'Your festival'));
+
+  const body = el('div', 'stats-body');
+  body.id = 'stats-body';
+  body.hidden = !statsOpen;
+
+  const toggle = el('button', 'stats-toggle');
+  toggle.id = 'stats-toggle';
+  toggle.setAttribute('aria-controls', 'stats-body');
+  const paint = (): void => {
+    toggle.setAttribute('aria-expanded', String(statsOpen));
+    toggle.innerHTML = '';
+    toggle.appendChild(el('span', 'stats-title', 'Your festival'));
+    toggle.appendChild(el('span', 'stats-toggle-chevron', statsOpen ? '▲' : '▼'));
+  };
+  paint();
+  toggle.addEventListener('click', () => {
+    statsOpen = !statsOpen;
+    body.hidden = !statsOpen;
+    paint();
+  });
+  panel.appendChild(toggle);
 
   const grid = el('div', 'stats-grid');
   const tile = (num: string, label: string): HTMLElement => {
@@ -931,7 +954,7 @@ function renderStats(): HTMLElement | null {
   const clashTile = tile(String(s.clashes), s.clashes === 1 ? 'clash' : 'clashes');
   if (s.clashes) clashTile.classList.add('is-clash');
   grid.appendChild(clashTile);
-  panel.appendChild(grid);
+  body.appendChild(grid);
 
   if (s.busiest) {
     const line = el(
@@ -939,8 +962,9 @@ function renderStats(): HTMLElement | null {
       'stats-note',
       `Busiest day: ${s.busiest.label} (${s.busiest.count} sets). Stage split — 🟢 ${s.perStage.rugina} · 🟣 ${s.perStage.brasov} · 🟠 ${s.perStage.calmuc}.`,
     );
-    panel.appendChild(line);
+    body.appendChild(line);
   }
+  panel.appendChild(body);
   return panel;
 }
 
