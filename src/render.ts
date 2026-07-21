@@ -34,11 +34,18 @@ import {
 import { exportCalendar, clearCalendar, hasExported } from './calendar';
 import * as notify from './notify';
 
-const PX_PER_MIN = 1.7;
+// Vertical scale of the timeline. Sized so even the shortest sets (45 min) are
+// tall enough to hold their full content — a three-line band name plus the
+// time, weather and both action pills — without clipping. Longer sets simply
+// get proportionally taller boxes.
+const PX_PER_MIN = 2.4;
 const HEADER_OFFSET = 0;
 
 let activeDayId = loadActiveDay(DAYS[0].id);
 let onlyPicks = false;
+// The filters / picks / clashes panel under the day tabs is folded away by
+// default; the header keeps showing live pick + clash counts while it's closed.
+let controlsOpen = false;
 let bannerDismissed = false;
 
 const el = <K extends keyof HTMLElementTagNameMap>(
@@ -68,15 +75,11 @@ export function mount(root: HTMLElement): void {
   root.innerHTML = '';
   root.appendChild(renderHeader());
   root.appendChild(renderDayTabs());
-  root.appendChild(renderToolbar());
+  root.appendChild(renderControls());
 
   const banner = el('div', 'update-banner-wrap');
   banner.id = 'update-banner';
   root.appendChild(banner);
-
-  const live = el('div', 'live-bar-wrap');
-  live.id = 'live-bar';
-  root.appendChild(live);
 
   const main = el('main', 'content');
   main.id = 'content';
@@ -209,6 +212,56 @@ function renderToolbar(): HTMLElement {
 
   wrap.appendChild(bar);
   wrap.appendChild(panel);
+  return wrap;
+}
+
+/**
+ * Everything that used to crowd the space under the day tabs — the "Only my
+ * picks" filter, band search, Options, Clear all, the now/next live bar and the
+ * clash / tight-crossing summary — folded into one panel that stays collapsed
+ * by default. The header still shows live pick + clash counts, so nothing
+ * urgent is lost while it's closed.
+ */
+function renderControls(): HTMLElement {
+  const wrap = el('div', 'controls-wrap');
+
+  const body = el('div', 'controls-body');
+  body.id = 'controls-body';
+  body.hidden = !controlsOpen;
+  body.appendChild(renderToolbar());
+
+  // Hosts re-filled by renderLiveBar() / renderContent(); they just live inside
+  // the collapsible now instead of at the top of the page.
+  const live = el('div', 'live-bar-wrap');
+  live.id = 'live-bar';
+  body.appendChild(live);
+
+  const clash = el('div', 'clash-summary-wrap');
+  clash.id = 'clash-summary';
+  body.appendChild(clash);
+
+  const toggle = el('button', 'controls-toggle');
+  toggle.id = 'controls-toggle';
+  toggle.setAttribute('aria-controls', 'controls-body');
+  const paint = (): void => {
+    toggle.setAttribute('aria-expanded', String(controlsOpen));
+    toggle.innerHTML = '';
+    toggle.appendChild(
+      el('span', 'controls-toggle-label', 'Filters, picks & clashes'),
+    );
+    toggle.appendChild(
+      el('span', 'controls-toggle-chevron', controlsOpen ? '▲' : '▼'),
+    );
+  };
+  paint();
+  toggle.addEventListener('click', () => {
+    controlsOpen = !controlsOpen;
+    body.hidden = !controlsOpen;
+    paint();
+  });
+
+  wrap.appendChild(toggle);
+  wrap.appendChild(body);
   return wrap;
 }
 
@@ -433,10 +486,19 @@ function renderContent(main: HTMLElement): void {
   const clashing = clashingIds(selected);
   const tight = tightIds(selected);
 
-  main.appendChild(renderClashSummary(day));
+  // The clash / tight-crossing summary now lives in the collapsible controls
+  // panel rather than above the timeline.
+  renderClashSummaryHost(day);
   main.appendChild(renderTimeline(slots, clashing, tight, day.date));
   const stats = renderStats();
   if (stats) main.appendChild(stats);
+}
+
+function renderClashSummaryHost(day: FestivalDay): void {
+  const host = document.getElementById('clash-summary');
+  if (!host) return;
+  host.innerHTML = '';
+  host.appendChild(renderClashSummary(day));
 }
 
 function clashBandLink(slot: SetSlot): HTMLAnchorElement {
