@@ -677,10 +677,12 @@ function renderSlot(
   if (wx.icons.length || wx.precip != null) {
     const strip = el('span', 'set-weather');
     const labels = wx.icons.map((c) => c.label).join(', then ');
-    // Show the amount when it's non-zero, or alongside a rain chance so a "%"
-    // never sits next to a blank (a dry set reads "0 mm").
-    const showMm = wx.precipMm != null && (wx.precipMm > 0 || wx.precip != null);
-    const mmText = showMm ? `${fmtMm(wx.precipMm!)} mm` : '';
+    // Show the amount when it's non-zero; when the set carries a rain chance but
+    // no forecast accumulation, read "probably dry" rather than a bare "0 mm"
+    // (the % is an ensemble spread, the mm a single deterministic run).
+    const hasMm = wx.precipMm != null && wx.precipMm > 0;
+    const dryish = wx.precipMm === 0 && wx.precip != null;
+    const mmText = hasMm ? `${fmtMm(wx.precipMm!)} mm` : dryish ? 'probably dry' : '';
     const rainText = wx.precip != null ? `${Math.round(wx.precip)}% rain` : '';
     // Pair the chance with the amount in the tooltip: "40% rain · 3.2 mm".
     const rainDetail = [rainText, mmText].filter(Boolean).join(' · ');
@@ -700,8 +702,12 @@ function renderSlot(
       if (wx.precip >= 50) rain.classList.add('is-wet');
       strip.appendChild(rain);
     }
-    if (showMm) {
+    if (hasMm) {
       const amount = el('span', 'set-wx-mm', `${fmtMm(wx.precipMm!)}mm`);
+      amount.setAttribute('aria-hidden', 'true');
+      strip.appendChild(amount);
+    } else if (dryish) {
+      const amount = el('span', 'set-wx-mm set-wx-dry', 'probably dry');
       amount.setAttribute('aria-hidden', 'true');
       strip.appendChild(amount);
     }

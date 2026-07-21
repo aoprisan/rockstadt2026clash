@@ -469,11 +469,15 @@ function renderDays(body: HTMLElement, days: DailyForecast[], hours: HourForecas
       meta.appendChild(chip(`${Math.round(f!.tMax!)}° / ${Math.round(f!.tMin!)}°`));
     }
     if (f?.precip != null) meta.appendChild(chip(`💧 ${Math.round(f.precip)}%`));
-    // Pair the chance with an amount: show mm whenever it's non-zero, or when a
-    // rain chance is on screen (so a "22%" never sits beside a blank — a dry
-    // day reads an explicit "0 mm").
-    if (f?.precipMm != null && (f.precipMm > 0 || f.precip != null)) {
+    // Pair the chance with an amount, but keep the two honest: the % is an
+    // ensemble spread while the mm is a single deterministic run, so a real
+    // chance can sit over a 0 mm forecast. Show the amount when it's non-zero;
+    // when it's zero but there's still a chance, say "Probably dry" rather than
+    // a self-contradictory "28% · 0 mm".
+    if (f?.precipMm != null && f.precipMm > 0) {
       meta.appendChild(chip(`🌧 ${fmtMm(f.precipMm)} mm`));
+    } else if (f?.precipMm === 0 && f?.precip != null) {
+      meta.appendChild(chip('Probably dry'));
     }
     if (f?.wind != null) meta.appendChild(chip(`💨 ${Math.round(f.wind)} km/h`));
     if (!hasTemp(f) && f?.precip == null && f?.wind == null) {
@@ -558,12 +562,15 @@ function renderHours(container: HTMLElement, date: string): void {
 
     const mm = document.createElement('span');
     mm.className = 'weather-hour-mm';
-    // Show an amount when rain is expected, or alongside a rain chance so the
-    // column never pairs a "%" with a blank (a dry hour reads "0 mm").
-    mm.textContent =
-      h.precipMm != null && (h.precipMm > 0 || h.precip != null)
-        ? `${fmtMm(h.precipMm)} mm`
-        : '';
+    // Show the amount when rain is expected; when the hour carries a chance but
+    // no forecast accumulation, say "probably dry" instead of a bare "0 mm".
+    if (h.precipMm != null && h.precipMm > 0) {
+      mm.textContent = `${fmtMm(h.precipMm)} mm`;
+    } else if (h.precipMm === 0 && h.precip != null) {
+      mm.textContent = 'probably dry';
+    } else {
+      mm.textContent = '';
+    }
     cell.appendChild(mm);
 
     scroll.appendChild(cell);

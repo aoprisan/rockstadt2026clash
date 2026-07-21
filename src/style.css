@@ -1026,6 +1026,13 @@ body {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+/* "probably dry" reads as a phrase, not a measurement — lighten and italicise
+   so it doesn't get mistaken for a number. */
+.set-wx-dry {
+  font-weight: 500;
+  font-style: italic;
+  opacity: 0.85;
+}
 .set.picked .set-weather {
   filter: saturate(1.15);
 }
