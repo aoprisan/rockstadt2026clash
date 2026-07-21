@@ -16,6 +16,7 @@ import {
   setWeatherIcons,
   subscribeForecast,
   ensureForecast,
+  startForecastAutoRefresh,
 } from './weather';
 import { exportCalendar, clearCalendar, hasExported } from './calendar';
 import * as notify from './notify';
@@ -70,6 +71,8 @@ export function mount(root: HTMLElement): void {
   // and re-render the timeline once it arrives (from cache, then network).
   subscribeForecast(() => renderContent(main));
   void ensureForecast();
+  // Keep it current while the app sits open all evening (timer + tab refocus).
+  startForecastAutoRefresh();
 
   renderContent(main);
   refreshChrome();

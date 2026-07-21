@@ -90,6 +90,65 @@ export function ensureForecast(): Promise<void> {
   return ensurePromise;
 }
 
+// The app is meant to stay open all evening on the festival grounds, so keep the
+// forecast fresh without a hard reload: re-check on a timer and whenever the tab
+// regains focus. Both paths only hit the network when the cache is actually
+// stale, so a backgrounded tab or rapid refocusing won't hammer the API.
+const REFRESH_INTERVAL_MS = 30 * 60 * 1000; // half the TTL, so we refresh soon after it expires
+let autoRefreshStarted = false;
+let refreshInFlight: Promise<void> | null = null;
+
+/**
+ * Keep the forecast up to date while the app stays open. Idempotent — safe to
+ * call more than once; only the first call wires up the timer and listener.
+ */
+export function startForecastAutoRefresh(): void {
+  if (autoRefreshStarted) return;
+  autoRefreshStarted = true;
+  setInterval(() => void refreshForecast(), REFRESH_INTERVAL_MS);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') void refreshForecast();
+  });
+}
+
+/**
+ * Re-fetch the forecast when the cached copy has aged past its TTL, then repaint
+ * every live view. A no-op while the cache is still fresh or a refresh is already
+ * running, so it's cheap to call speculatively.
+ */
+async function refreshForecast(): Promise<void> {
+  if (refreshInFlight) return refreshInFlight;
+  const cached = readCache();
+  const fresh =
+    !!cached && cached.hours.length > 0 && Date.now() - cached.fetchedAt < CACHE_TTL_MS;
+  if (fresh) return;
+  refreshInFlight = doRefresh();
+  try {
+    await refreshInFlight;
+  } finally {
+    refreshInFlight = null;
+  }
+}
+
+async function doRefresh(): Promise<void> {
+  try {
+    const { days, hours } = await fetchForecast();
+    const fetchedAt = Date.now();
+    writeCache({ fetchedAt, days, hours });
+    hourIndex = new Map(hours.map((h) => [h.time, h]));
+    notifyForecast(); // repaints the timeline's per-set icons
+    // If the weather dialog is open, refresh it in place so the visible panel
+    // doesn't lag behind the timeline.
+    const body = document.getElementById('weather-body');
+    if (dialog?.open && body) {
+      renderDays(body, days, hours);
+      setNote(document.getElementById('weather-note'), fetchedAt);
+    }
+  } catch {
+    /* offline / API down — keep the last good forecast */
+  }
+}
+
 export interface SetWeather {
   /**
    * One icon per festival hour the set touches, with consecutive identical
