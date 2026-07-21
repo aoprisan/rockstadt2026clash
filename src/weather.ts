@@ -13,6 +13,11 @@ const API = 'https://api.open-meteo.com/v1/forecast';
 const CACHE_KEY = 'ref2026:weather';
 const CACHE_TTL_MS = 60 * 60 * 1000; // an hour is plenty for a daily forecast
 
+// Festival sets run from mid-afternoon well past midnight, so the "day" we
+// care about weather-wise is 14:00 through 03:00 the following morning.
+const HOUR_FROM = 14; // inclusive, on the day's date
+const HOUR_TO = 27; // exclusive; 24–27 map to 00:00–02:00 the next morning
+
 interface DailyForecast {
   date: string; // ISO yyyy-mm-dd
   code: number | null;
@@ -22,14 +27,26 @@ interface DailyForecast {
   wind: number | null; // max wind km/h
 }
 
+interface HourForecast {
+  time: string; // ISO yyyy-mm-ddThh:00 (local festival time)
+  code: number | null;
+  temp: number | null; // °C
+  precip: number | null; // precipitation probability %
+  wind: number | null; // wind km/h
+}
+
 interface Cached {
   fetchedAt: number;
   days: DailyForecast[];
+  hours: HourForecast[];
 }
 
 let dialog: HTMLDialogElement | null = null;
+// The most recently rendered hourly data, keyed by ISO hour, so row toggles can
+// build their strip lazily without re-fetching.
+let hourIndex = new Map<string, HourForecast>();
 
-/** Open a panel with the 5-day festival weather forecast. */
+/** Open a panel with the festival weather forecast (daily + hourly). */
 export function openWeather(): void {
   if (!dialog) dialog = buildDialog();
   if (typeof dialog.showModal === 'function') dialog.showModal();
@@ -42,6 +59,25 @@ function firstDate(): string {
 }
 function lastDate(): string {
   return DAYS[DAYS.length - 1].date;
+}
+
+/** Add whole days to an ISO date (yyyy-mm-dd), staying timezone-agnostic. */
+function addDays(iso: string, n: number): string {
+  const d = new Date(iso + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+/** ISO keys + labels for the festival hours (14:00 → 02:00) of a given day. */
+function hourKeys(date: string): { key: string; label: string }[] {
+  const out: { key: string; label: string }[] = [];
+  for (let h = HOUR_FROM; h < HOUR_TO; h++) {
+    const realHour = h % 24;
+    const onDate = h < 24 ? date : addDays(date, 1);
+    const hh = String(realHour).padStart(2, '0');
+    out.push({ key: `${onDate}T${hh}:00`, label: `${hh}:00` });
+  }
+  return out;
 }
 
 function buildDialog(): HTMLDialogElement {
@@ -72,7 +108,7 @@ function buildDialog(): HTMLDialogElement {
 
   const sub = document.createElement('p');
   sub.className = 'weather-sub';
-  sub.textContent = FESTIVAL.location;
+  sub.textContent = `${FESTIVAL.location} · tap a day for the hourly forecast`;
   card.appendChild(sub);
 
   const body = document.createElement('div');
@@ -107,7 +143,7 @@ async function load(): Promise<void> {
 
   // Show cached data immediately if we have any; only show a spinner when we
   // have nothing at all to display.
-  if (cached) renderDays(body, cached.days);
+  if (cached) renderDays(body, cached.days, cached.hours);
   else body.innerHTML = '<p class="weather-status">Loading forecast…</p>';
 
   if (fresh) {
@@ -116,9 +152,9 @@ async function load(): Promise<void> {
   }
 
   try {
-    const days = await fetchForecast();
-    writeCache({ fetchedAt: Date.now(), days });
-    renderDays(body, days);
+    const { days, hours } = await fetchForecast();
+    writeCache({ fetchedAt: Date.now(), days, hours });
+    renderDays(body, days, hours);
     setNote(note, Date.now());
   } catch {
     if (!cached) {
@@ -132,15 +168,18 @@ async function load(): Promise<void> {
   }
 }
 
-async function fetchForecast(): Promise<DailyForecast[]> {
+async function fetchForecast(): Promise<{ days: DailyForecast[]; hours: HourForecast[] }> {
   const params = new URLSearchParams({
     latitude: String(LAT),
     longitude: String(LON),
     daily:
       'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max',
+    hourly: 'weather_code,temperature_2m,precipitation_probability,wind_speed_10m',
     timezone: TZ,
     start_date: firstDate(),
-    end_date: lastDate(),
+    // Sets on the final night spill past midnight, so pull one extra day of
+    // hourly data to cover those small hours.
+    end_date: addDays(lastDate(), 1),
   });
 
   const res = await fetch(`${API}?${params.toString()}`);
@@ -153,6 +192,13 @@ async function fetchForecast(): Promise<DailyForecast[]> {
       temperature_2m_min?: (number | null)[];
       precipitation_probability_max?: (number | null)[];
       wind_speed_10m_max?: (number | null)[];
+    };
+    hourly?: {
+      time?: string[];
+      weather_code?: (number | null)[];
+      temperature_2m?: (number | null)[];
+      precipitation_probability?: (number | null)[];
+      wind_speed_10m?: (number | null)[];
     };
   };
 
@@ -172,7 +218,7 @@ async function fetchForecast(): Promise<DailyForecast[]> {
     });
   });
 
-  return DAYS.map(
+  const days = DAYS.map(
     (day) =>
       byDate.get(day.date) ?? {
         date: day.date,
@@ -183,17 +229,36 @@ async function fetchForecast(): Promise<DailyForecast[]> {
         wind: null,
       },
   );
+
+  const h = json.hourly;
+  const hTimes = h?.time ?? [];
+  const hours: HourForecast[] = hTimes.map((time, i) => ({
+    time,
+    code: h?.weather_code?.[i] ?? null,
+    temp: h?.temperature_2m?.[i] ?? null,
+    precip: h?.precipitation_probability?.[i] ?? null,
+    wind: h?.wind_speed_10m?.[i] ?? null,
+  }));
+
+  return { days, hours };
 }
 
-function renderDays(body: HTMLElement, days: DailyForecast[]): void {
+function renderDays(body: HTMLElement, days: DailyForecast[], hours: HourForecast[]): void {
+  hourIndex = new Map(hours.map((h) => [h.time, h]));
+
   body.innerHTML = '';
   const list = document.createElement('ul');
   list.className = 'weather-list';
 
   DAYS.forEach((day) => {
     const f = days.find((d) => d.date === day.date);
-    const li = document.createElement('li');
-    li.className = 'weather-row';
+    const item = document.createElement('li');
+    item.className = 'weather-item';
+
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'weather-row';
+    row.setAttribute('aria-expanded', 'false');
 
     const when = document.createElement('div');
     when.className = 'weather-when';
@@ -209,14 +274,14 @@ function renderDays(body: HTMLElement, days: DailyForecast[]): void {
     });
     when.appendChild(lbl);
     when.appendChild(dt);
-    li.appendChild(when);
+    row.appendChild(when);
 
     const cond = describe(f?.code ?? null);
     const icon = document.createElement('span');
     icon.className = 'weather-icon';
     icon.textContent = cond.icon;
     icon.setAttribute('aria-hidden', 'true');
-    li.appendChild(icon);
+    row.appendChild(icon);
 
     const info = document.createElement('div');
     info.className = 'weather-info';
@@ -236,12 +301,87 @@ function renderDays(body: HTMLElement, days: DailyForecast[]): void {
       meta.appendChild(chip('Forecast not available yet'));
     }
     info.appendChild(meta);
-    li.appendChild(info);
+    row.appendChild(info);
 
-    list.appendChild(li);
+    const chevron = document.createElement('span');
+    chevron.className = 'weather-chevron';
+    chevron.setAttribute('aria-hidden', 'true');
+    chevron.textContent = '▸';
+    row.appendChild(chevron);
+
+    const hourly = document.createElement('div');
+    hourly.className = 'weather-hours';
+    hourly.hidden = true;
+
+    row.addEventListener('click', () => {
+      const open = row.getAttribute('aria-expanded') === 'true';
+      row.setAttribute('aria-expanded', String(!open));
+      hourly.hidden = open;
+      if (!open && !hourly.dataset.built) {
+        renderHours(hourly, day.date);
+        hourly.dataset.built = '1';
+      }
+    });
+
+    item.appendChild(row);
+    item.appendChild(hourly);
+    list.appendChild(item);
   });
 
   body.appendChild(list);
+}
+
+function renderHours(container: HTMLElement, date: string): void {
+  const keys = hourKeys(date);
+  const available = keys.filter(({ key }) => hourIndex.has(key));
+
+  if (available.length === 0) {
+    container.innerHTML =
+      '<p class="weather-hours-empty">Hourly forecast not available yet.</p>';
+    return;
+  }
+
+  const scroll = document.createElement('div');
+  scroll.className = 'weather-hours-scroll';
+
+  available.forEach(({ key, label }) => {
+    const h = hourIndex.get(key)!;
+    const cell = document.createElement('div');
+    cell.className = 'weather-hour';
+
+    const time = document.createElement('span');
+    time.className = 'weather-hour-time';
+    time.textContent = label;
+    cell.appendChild(time);
+
+    const cond = describe(h.code);
+    const ic = document.createElement('span');
+    ic.className = 'weather-hour-icon';
+    ic.textContent = cond.icon;
+    ic.setAttribute('aria-label', cond.label);
+    ic.title = cond.label;
+    cell.appendChild(ic);
+
+    const temp = document.createElement('span');
+    temp.className = 'weather-hour-temp';
+    temp.textContent = h.temp != null ? `${Math.round(h.temp)}°` : '—';
+    cell.appendChild(temp);
+
+    const rain = document.createElement('span');
+    rain.className = 'weather-hour-rain';
+    if (h.precip != null) {
+      rain.textContent = `💧${Math.round(h.precip)}%`;
+      if (h.precip >= 50) rain.classList.add('is-wet');
+    } else {
+      rain.textContent = '';
+    }
+    cell.appendChild(rain);
+
+    scroll.appendChild(cell);
+  });
+
+  container.innerHTML = '';
+  container.appendChild(scroll);
 }
 
 function hasTemp(f: DailyForecast | undefined): boolean {
@@ -274,6 +414,8 @@ function readCache(): Cached | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Cached;
     if (!Array.isArray(parsed.days)) return null;
+    // Hourly data was added later; tolerate caches that predate it.
+    if (!Array.isArray(parsed.hours)) parsed.hours = [];
     return parsed;
   } catch {
     return null;

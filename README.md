@@ -30,9 +30,11 @@ flags **clashes** — sets you've picked that overlap in time.
   native mobile share sheet (falls back to a download on desktop).
 - **Weather forecast** — a per-day forecast for the festival site (high/low,
   rain chance, wind) pulled live from the free, keyless
-  [Open-Meteo](https://open-meteo.com/) API. The last result is cached in
-  `localStorage`, so the panel still shows the most recent forecast offline on
-  the festival grounds.
+  [Open-Meteo](https://open-meteo.com/) API. Tap any day to expand an
+  **hourly** strip covering the festival hours (14:00 → the small hours) with
+  temperature, condition and rain chance for each hour. The last result is
+  cached in `localStorage`, so the panel still shows the most recent forecast
+  offline on the festival grounds.
 - **Installable & offline** — full PWA with a service worker (manifest, icons,
   offline caching) so it works on the festival grounds with patchy signal.
 
