@@ -92,3 +92,19 @@ Returning visitors whose device last saw an older stamp then get a one-time
 "running order updated" banner so stale plans don't go unnoticed. Band genres
 and curated listen links live in `src/band-meta.ts` (keyed by band name);
 bands without an entry fall back to a Spotify search.
+
+## License
+
+Copyright © 2026 Andrei Oprisan.
+
+This project is licensed under the **GNU Affero General Public License v3.0
+only** (`AGPL-3.0-only`) — see [`LICENSE`](LICENSE). You're free to use, study,
+modify and share it; if you run a modified version as a network service, the
+AGPL requires you to offer that version's source to its users.
+
+The copyright is held solely by the author, who reserves the right to offer the
+software under **separate commercial terms**. If the AGPL's terms don't fit your
+use case, a commercial license is available on request.
+
+Contributions are welcome under the terms in [`AGENTS.md`](AGENTS.md), which
+include a licensing grant that keeps this dual-licensing possible.

@@ -29,3 +29,9 @@ Recent commits use short, imperative subjects such as `Add hourly weather foreca
 ## Configuration Notes
 
 The GitHub Pages base path in `vite.config.ts` is `/rockstadt2026clash/`; update it if the repository name changes. Do not commit secrets or local configuration files. Weather data uses the keyless Open-Meteo API, while user selections remain in browser storage.
+
+## Licensing & Contributions
+
+This project is released under `AGPL-3.0-only` (see `LICENSE`), with copyright held solely by Andrei Oprisan, who may also offer the software under separate commercial terms.
+
+By submitting a contribution (pull request, patch, or otherwise), you represent that you have the right to do so and you grant Andrei Oprisan a perpetual, worldwide, non-exclusive, royalty-free, irrevocable license to use, reproduce, modify, sublicense, and distribute your contribution, **including the right to relicense it under other terms (such as a commercial license)**. Your contribution remains available to everyone under the AGPL; this grant simply preserves the maintainer's ability to dual-license the combined work. If you cannot agree to this, please open an issue to discuss before contributing.

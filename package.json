@@ -4,6 +4,8 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Progressive Web App clashfinder for Rockstadt Extreme Fest 2026.",
+  "author": "Andrei Oprisan",
+  "license": "AGPL-3.0-only",
   "scripts": {
     "icons": "node scripts/gen-icons.mjs",
     "dev": "vite",
