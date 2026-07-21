@@ -24,6 +24,7 @@ interface DailyForecast {
   tMax: number | null;
   tMin: number | null;
   precip: number | null; // max precipitation probability %
+  precipMm: number | null; // total precipitation for the day, mm
   wind: number | null; // max wind km/h
 }
 
@@ -32,6 +33,7 @@ interface HourForecast {
   code: number | null;
   temp: number | null; // °C
   precip: number | null; // precipitation probability %
+  precipMm: number | null; // precipitation amount for the hour, mm
   wind: number | null; // wind km/h
   isDay: boolean; // false during the hours after sunset, so clear skies show a moon
 }
@@ -159,6 +161,8 @@ export interface SetWeather {
   icons: { icon: string; label: string }[];
   /** Peak precipitation probability (%) across the set's hours, or null. */
   precip: number | null;
+  /** Total expected precipitation (mm) summed over the set's hours, or null. */
+  precipMm: number | null;
 }
 
 /**
@@ -173,9 +177,10 @@ export function setWeatherIcons(
   startMin: number,
   endMin: number,
 ): SetWeather {
-  if (hourIndex.size === 0) return { icons: [], precip: null };
+  if (hourIndex.size === 0) return { icons: [], precip: null, precipMm: null };
   const out: { icon: string; label: string }[] = [];
   let precip: number | null = null;
+  let precipMm: number | null = null;
   // Snap to the start of the hour the set begins in, then step hour by hour
   // until the set ends. Noon-anchored minute 720 is the following midnight, so
   // anything at or beyond it belongs to the next calendar day.
@@ -187,13 +192,14 @@ export function setWeatherIcons(
     const h = hourIndex.get(key);
     if (!h) continue;
     if (h.precip != null) precip = Math.max(precip ?? 0, h.precip);
+    if (h.precipMm != null) precipMm = (precipMm ?? 0) + h.precipMm;
     if (h.code == null) continue;
     const cond = describe(h.code, h.isDay);
     const prev = out[out.length - 1];
     if (prev && prev.icon === cond.icon) continue; // collapse runs of same sky
     out.push(cond);
   }
-  return { icons: out, precip };
+  return { icons: out, precip, precipMm };
 }
 
 /** Open a panel with the festival weather forecast (daily + hourly). */
@@ -327,8 +333,9 @@ async function fetchForecast(): Promise<{ days: DailyForecast[]; hours: HourFore
     latitude: String(LAT),
     longitude: String(LON),
     daily:
-      'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max',
-    hourly: 'weather_code,temperature_2m,precipitation_probability,wind_speed_10m,is_day',
+      'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,wind_speed_10m_max',
+    hourly:
+      'weather_code,temperature_2m,precipitation_probability,precipitation,wind_speed_10m,is_day',
     timezone: TZ,
     start_date: firstDate(),
     // Sets on the final night spill past midnight, so pull one extra day of
@@ -345,6 +352,7 @@ async function fetchForecast(): Promise<{ days: DailyForecast[]; hours: HourFore
       temperature_2m_max?: (number | null)[];
       temperature_2m_min?: (number | null)[];
       precipitation_probability_max?: (number | null)[];
+      precipitation_sum?: (number | null)[];
       wind_speed_10m_max?: (number | null)[];
     };
     hourly?: {
@@ -352,6 +360,7 @@ async function fetchForecast(): Promise<{ days: DailyForecast[]; hours: HourFore
       weather_code?: (number | null)[];
       temperature_2m?: (number | null)[];
       precipitation_probability?: (number | null)[];
+      precipitation?: (number | null)[];
       wind_speed_10m?: (number | null)[];
       is_day?: (number | null)[];
     };
@@ -369,6 +378,7 @@ async function fetchForecast(): Promise<{ days: DailyForecast[]; hours: HourFore
       tMax: daily?.temperature_2m_max?.[i] ?? null,
       tMin: daily?.temperature_2m_min?.[i] ?? null,
       precip: daily?.precipitation_probability_max?.[i] ?? null,
+      precipMm: daily?.precipitation_sum?.[i] ?? null,
       wind: daily?.wind_speed_10m_max?.[i] ?? null,
     });
   });
@@ -381,6 +391,7 @@ async function fetchForecast(): Promise<{ days: DailyForecast[]; hours: HourFore
         tMax: null,
         tMin: null,
         precip: null,
+        precipMm: null,
         wind: null,
       },
   );
@@ -392,6 +403,7 @@ async function fetchForecast(): Promise<{ days: DailyForecast[]; hours: HourFore
     code: h?.weather_code?.[i] ?? null,
     temp: h?.temperature_2m?.[i] ?? null,
     precip: h?.precipitation_probability?.[i] ?? null,
+    precipMm: h?.precipitation?.[i] ?? null,
     wind: h?.wind_speed_10m?.[i] ?? null,
     // API omits is_day on older caches; default to daytime so we never
     // show a moon over a genuinely sunny hour.
@@ -454,6 +466,9 @@ function renderDays(body: HTMLElement, days: DailyForecast[], hours: HourForecas
       meta.appendChild(chip(`${Math.round(f!.tMax!)}° / ${Math.round(f!.tMin!)}°`));
     }
     if (f?.precip != null) meta.appendChild(chip(`💧 ${Math.round(f.precip)}%`));
+    if (f?.precipMm != null && f.precipMm > 0) {
+      meta.appendChild(chip(`🌧 ${fmtMm(f.precipMm)} mm`));
+    }
     if (f?.wind != null) meta.appendChild(chip(`💨 ${Math.round(f.wind)} km/h`));
     if (!hasTemp(f) && f?.precip == null && f?.wind == null) {
       meta.appendChild(chip('Forecast not available yet'));
@@ -535,6 +550,13 @@ function renderHours(container: HTMLElement, date: string): void {
     }
     cell.appendChild(rain);
 
+    const mm = document.createElement('span');
+    mm.className = 'weather-hour-mm';
+    // Only show an amount when rain is actually expected — "0 mm" under every
+    // dry hour is just noise.
+    mm.textContent = h.precipMm != null && h.precipMm > 0 ? `${fmtMm(h.precipMm)} mm` : '';
+    cell.appendChild(mm);
+
     scroll.appendChild(cell);
   });
 
@@ -544,6 +566,15 @@ function renderHours(container: HTMLElement, date: string): void {
 
 function hasTemp(f: DailyForecast | undefined): boolean {
   return f != null && f.tMax != null && f.tMin != null;
+}
+
+/**
+ * Format a precipitation amount in mm: one decimal for light rain (where the
+ * difference between 0.2 and 1.5 mm matters), whole numbers once it's heavy
+ * enough that the fraction is noise.
+ */
+export function fmtMm(mm: number): string {
+  return mm < 10 ? mm.toFixed(1) : String(Math.round(mm));
 }
 
 function chip(text: string): HTMLElement {

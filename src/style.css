@@ -777,6 +777,12 @@ body {
 .weather-hour-rain.is-wet {
   color: #38bdf8;
 }
+.weather-hour-mm {
+  font-size: 0.58rem;
+  color: var(--muted);
+  min-height: 0.7em;
+  font-variant-numeric: tabular-nums;
+}
 .weather-hours-empty {
   margin: 2px;
   font-size: 0.75rem;
@@ -1112,10 +1118,18 @@ body {
 .set-wx-rain.is-wet {
   color: #38bdf8;
 }
+.set-wx-mm {
+  font-size: 0.58rem;
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 .set.picked .set-weather {
   filter: saturate(1.15);
 }
-.set.picked .set-wx-rain {
+.set.picked .set-wx-rain,
+.set.picked .set-wx-mm {
   color: rgba(255, 255, 255, 0.85);
 }
 .set.picked {

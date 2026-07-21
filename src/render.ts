@@ -12,6 +12,7 @@ import { shareSelection } from './share';
 import { openShareApp } from './share-app';
 import { openMap } from './map';
 import {
+  fmtMm,
   openWeather,
   setWeatherIcons,
   subscribeForecast,
@@ -576,10 +577,13 @@ function renderSlot(
   if (wx.icons.length || wx.precip != null) {
     const strip = el('span', 'set-weather');
     const labels = wx.icons.map((c) => c.label).join(', then ');
+    const mmText = wx.precipMm != null && wx.precipMm > 0 ? `${fmtMm(wx.precipMm)} mm` : '';
     const rainText = wx.precip != null ? `${Math.round(wx.precip)}% rain` : '';
-    const aria = [labels, rainText].filter(Boolean).join(' · ');
+    // Pair the chance with the amount in the tooltip: "40% rain · 3.2 mm".
+    const rainDetail = [rainText, mmText].filter(Boolean).join(' · ');
+    const aria = [labels, rainDetail].filter(Boolean).join(' · ');
     strip.setAttribute('aria-label', aria ? `Forecast: ${aria}` : 'Forecast');
-    strip.title = [wx.icons.map((c) => c.label).join(' → '), rainText]
+    strip.title = [wx.icons.map((c) => c.label).join(' → '), rainDetail]
       .filter(Boolean)
       .join(' · ');
     for (const c of wx.icons) {
@@ -592,6 +596,11 @@ function renderSlot(
       rain.setAttribute('aria-hidden', 'true');
       if (wx.precip >= 50) rain.classList.add('is-wet');
       strip.appendChild(rain);
+    }
+    if (wx.precipMm != null && wx.precipMm > 0) {
+      const amount = el('span', 'set-wx-mm', `${fmtMm(wx.precipMm)}mm`);
+      amount.setAttribute('aria-hidden', 'true');
+      strip.appendChild(amount);
     }
     timeRow.appendChild(strip);
   }
