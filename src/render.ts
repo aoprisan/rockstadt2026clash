@@ -1,15 +1,27 @@
-import { DAYS, FESTIVAL } from './data';
+import { DAYS, FESTIVAL, DATA_VERSION } from './data';
 import type { FestivalDay, SetSlot } from './types';
 import {
   buildSlots,
   clashingIds,
   findClashes,
+  findTightTransitions,
+  tightIds,
   fmtDuration,
   getSlot,
+  ALL_SLOTS,
 } from './schedule';
-import { selection, loadActiveDay, saveActiveDay } from './store';
+import {
+  selection,
+  loadActiveDay,
+  saveActiveDay,
+  loadSeenVersion,
+  saveSeenVersion,
+} from './store';
 import { shareSelection } from './share';
 import { openShareApp } from './share-app';
+import { sharePicksLink } from './picks-link';
+import { computeLive, fmtCountdown } from './live';
+import { computeStats } from './stats';
 import { openMap } from './map';
 import {
   fmtMm,
@@ -27,6 +39,7 @@ const HEADER_OFFSET = 0;
 
 let activeDayId = loadActiveDay(DAYS[0].id);
 let onlyPicks = false;
+let bannerDismissed = false;
 
 const el = <K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -57,6 +70,14 @@ export function mount(root: HTMLElement): void {
   root.appendChild(renderDayTabs());
   root.appendChild(renderToolbar());
 
+  const banner = el('div', 'update-banner-wrap');
+  banner.id = 'update-banner';
+  root.appendChild(banner);
+
+  const live = el('div', 'live-bar-wrap');
+  live.id = 'live-bar';
+  root.appendChild(live);
+
   const main = el('main', 'content');
   main.id = 'content';
   root.appendChild(main);
@@ -65,6 +86,7 @@ export function mount(root: HTMLElement): void {
 
   selection.subscribe(() => {
     renderContent(main);
+    renderLiveBar();
     refreshChrome();
   });
 
@@ -75,8 +97,16 @@ export function mount(root: HTMLElement): void {
   // Keep it current while the app sits open all evening (timer + tab refocus).
   startForecastAutoRefresh();
 
+  renderUpdateBanner();
+  renderLiveBar();
   renderContent(main);
   refreshChrome();
+
+  // "Now / Next" ticks forward on its own while the app sits open all evening.
+  window.setInterval(renderLiveBar, 30_000);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) renderLiveBar();
+  });
 }
 
 function renderHeader(): HTMLElement {
@@ -139,6 +169,8 @@ function renderToolbar(): HTMLElement {
   pickToggle.appendChild(el('span', 'switch-label', 'Only my picks'));
   toggles.appendChild(pickToggle);
 
+  toggles.appendChild(renderSearch());
+
   bar.appendChild(toggles);
 
   // Collapsible panel: secondary reminder + calendar controls live here so
@@ -150,6 +182,7 @@ function renderToolbar(): HTMLElement {
   const notifyCtl = renderNotifyControl();
   if (notifyCtl) panel.appendChild(notifyCtl);
   panel.appendChild(renderCalendarMenu());
+  panel.appendChild(renderPicksLinkButton());
 
   // Right group: options disclosure + clear all.
   const actions = el('div', 'tb-group tb-actions');
@@ -397,10 +430,14 @@ function renderContent(main: HTMLElement): void {
   const day = activeDay();
   const slots = buildSlots(day);
 
-  const clashing = clashingIds(selectedSlots());
+  const selected = selectedSlots();
+  const clashing = clashingIds(selected);
+  const tight = tightIds(selected);
 
   main.appendChild(renderClashSummary(day));
-  main.appendChild(renderTimeline(slots, clashing, day.date));
+  main.appendChild(renderTimeline(slots, clashing, tight, day.date));
+  const stats = renderStats();
+  if (stats) main.appendChild(stats);
 }
 
 function clashBandLink(slot: SetSlot): HTMLAnchorElement {
@@ -430,10 +467,18 @@ function renderClashSummary(day: FestivalDay): HTMLElement {
     return panel;
   }
 
+  const dayTight = findTightTransitions(selectedSlots()).filter(
+    (t) => t.from.dayId === day.id,
+  );
+
   if (dayClashes.length === 0) {
     panel.classList.add('ok');
-    panel.appendChild(el('span', 'clash-icon', '✓'));
-    panel.appendChild(el('p', 'clash-title', 'No clashes on this day. You’re all set.'));
+    const head = el('div', 'clash-head');
+    head.appendChild(el('span', 'clash-icon', '✓'));
+    head.appendChild(el('p', 'clash-title', 'No clashes on this day. You’re all set.'));
+    panel.appendChild(head);
+    const tight = renderTightBlock(dayTight);
+    if (tight) panel.appendChild(tight);
     return panel;
   }
 
@@ -458,16 +503,64 @@ function renderClashSummary(day: FestivalDay): HTMLElement {
     li.appendChild(el('span', 'clash-vs', 'vs'));
     li.appendChild(b);
     li.appendChild(el('span', 'clash-overlap', `${fmtDuration(c.minutes)} overlap`));
-    panel.appendChild(li);
     list.appendChild(li);
   }
   panel.appendChild(list);
+  const tight = renderTightBlock(dayTight);
+  if (tight) panel.appendChild(tight);
   return panel;
+}
+
+/**
+ * A "tight transitions" block: back-to-back picks on different stages where the
+ * gap is too short to comfortably walk across. Amber, not ember — a heads-up,
+ * a rung below a true clash. Returns null when there are none.
+ */
+function renderTightBlock(
+  transitions: ReturnType<typeof findTightTransitions>,
+): HTMLElement | null {
+  if (transitions.length === 0) return null;
+  const wrap = el('section', 'tight-block');
+
+  const head = el('div', 'tight-head');
+  head.appendChild(el('span', 'tight-icon', '🚶'));
+  head.appendChild(
+    el(
+      'p',
+      'tight-title',
+      `${transitions.length} tight ${transitions.length > 1 ? 'crossings' : 'crossing'} between stages`,
+    ),
+  );
+  wrap.appendChild(head);
+
+  const list = el('ul', 'tight-list');
+  for (const t of transitions) {
+    const li = el('li', 'tight-item');
+    li.appendChild(tightBandLabel(t.from));
+    li.appendChild(el('span', 'tight-arrow', '→'));
+    li.appendChild(tightBandLabel(t.to));
+    const detail =
+      t.slack < 0
+        ? `only ${t.gap}m for a ${t.walk}m walk`
+        : `${t.gap}m gap · ~${t.walk}m walk`;
+    const note = el('span', t.slack < 0 ? 'tight-gap is-short' : 'tight-gap', detail);
+    li.appendChild(note);
+    list.appendChild(li);
+  }
+  wrap.appendChild(list);
+  return wrap;
+}
+
+function tightBandLabel(slot: SetSlot): HTMLElement {
+  const span = el('span', 'tight-band', slot.band);
+  span.style.setProperty('--c', slot.stage.color);
+  return span;
 }
 
 function renderTimeline(
   slots: SetSlot[],
   clashing: Set<string>,
+  tight: Set<string>,
   dayDate: string,
 ): HTMLElement {
   const visible = onlyPicks ? slots.filter((s) => selection.has(s.id)) : slots;
@@ -517,7 +610,7 @@ function renderTimeline(
     col.style.setProperty('--stage', stageColor(stageKey));
     const colSlots = visible.filter((s) => s.stage.id === stageKey);
     for (const slot of colSlots) {
-      col.appendChild(renderSlot(slot, top, clashing, dayDate));
+      col.appendChild(renderSlot(slot, top, clashing, tight, dayDate));
     }
     cols.appendChild(col);
   }
@@ -541,30 +634,38 @@ function renderSlot(
   slot: SetSlot,
   top: number,
   clashing: Set<string>,
+  tight: Set<string>,
   dayDate: string,
 ): HTMLElement {
   const y = (slot.start - top) * PX_PER_MIN;
   const h = (slot.end - slot.start) * PX_PER_MIN;
   const node = el('button', 'set');
+  node.dataset.slot = slot.id;
   node.style.top = `${y}px`;
   node.style.height = `${Math.max(h - 3, 22)}px`;
   node.style.setProperty('--stage', slot.stage.color);
 
   const picked = selection.has(slot.id);
   const isClash = picked && clashing.has(slot.id);
+  const isTight = picked && !isClash && tight.has(slot.id);
   if (picked) node.classList.add('picked');
   if (isClash) node.classList.add('clashing');
+  if (isTight) node.classList.add('tight');
 
   node.setAttribute(
     'aria-label',
     `${slot.band}, ${slot.startLabel} to ${slot.endLabel}, ${slot.stage.name}${
-      picked ? ', selected' : ''
-    }${isClash ? ', clashes with another pick' : ''}`,
+      slot.genre ? `, ${slot.genre}` : ''
+    }${picked ? ', selected' : ''}${isClash ? ', clashes with another pick' : ''}${
+      isTight ? ', tight walk from your previous pick' : ''
+    }`,
   );
   node.setAttribute('aria-pressed', String(picked));
 
   const band = el('span', 'set-band', slot.band);
   node.appendChild(band);
+
+  if (slot.genre) node.appendChild(el('span', 'set-genre', slot.genre));
 
   const timeRow = el('div', 'set-timerow');
   const time = el('span', 'set-time', `${slot.startLabel}–${slot.endLabel}`);
@@ -607,20 +708,302 @@ function renderSlot(
   node.appendChild(timeRow);
 
   if (isClash) node.appendChild(el('span', 'set-flag', '⚠'));
+  else if (isTight) node.appendChild(el('span', 'set-flag walk', '🚶'));
   else if (picked) node.appendChild(el('span', 'set-flag check', '✓'));
 
-  const link = el('a', 'set-link');
+  const actions = el('div', 'set-actions');
+
+  const listen = el('a', 'set-pill set-listen');
+  listen.appendChild(el('span', 'set-pill-icon', '▶'));
+  listen.setAttribute('href', slot.listen);
+  listen.setAttribute('target', '_blank');
+  listen.setAttribute('rel', 'noopener noreferrer');
+  listen.setAttribute('aria-label', `Listen to ${slot.band}`);
+  listen.title = `Listen to ${slot.band}`;
+  listen.addEventListener('click', (e) => e.stopPropagation());
+  actions.appendChild(listen);
+
+  const link = el('a', 'set-pill set-link');
   link.appendChild(el('span', 'set-link-label', 'Info'));
-  link.appendChild(el('span', 'set-link-icon', '↗'));
+  link.appendChild(el('span', 'set-pill-icon', '↗'));
   link.setAttribute('href', slot.link);
   link.setAttribute('target', '_blank');
   link.setAttribute('rel', 'noopener noreferrer');
   link.setAttribute('aria-label', `Open ${slot.band} info`);
   link.addEventListener('click', (e) => e.stopPropagation());
-  node.appendChild(link);
+  actions.appendChild(link);
+
+  node.appendChild(actions);
 
   node.addEventListener('click', () => selection.toggle(slot.id));
   return node;
+}
+
+/* ---------- data-update banner ---------- */
+function renderUpdateBanner(): void {
+  const host = document.getElementById('update-banner');
+  if (!host) return;
+  host.innerHTML = '';
+
+  const seen = loadSeenVersion();
+  // First visit ever: quietly record the version, no banner.
+  if (seen == null) {
+    saveSeenVersion(DATA_VERSION);
+    return;
+  }
+  if (seen === DATA_VERSION || bannerDismissed) return;
+
+  const bar = el('div', 'update-banner');
+  bar.setAttribute('role', 'status');
+  bar.appendChild(el('span', 'update-banner-icon', '↻'));
+  bar.appendChild(
+    el(
+      'span',
+      'update-banner-text',
+      'Running order updated — some set times may have changed. Double-check your picks.',
+    ),
+  );
+  const dismiss = el('button', 'update-banner-close', '✕');
+  dismiss.setAttribute('aria-label', 'Dismiss');
+  dismiss.addEventListener('click', () => {
+    bannerDismissed = true;
+    saveSeenVersion(DATA_VERSION);
+    renderUpdateBanner();
+  });
+  bar.appendChild(dismiss);
+  host.appendChild(bar);
+}
+
+/* ---------- "now / next" live bar ---------- */
+function renderLiveBar(): void {
+  const host = document.getElementById('live-bar');
+  if (!host) return;
+  host.innerHTML = '';
+
+  const state = computeLive(Date.now());
+  if (state.phase === 'empty') return; // nothing picked — stay out of the way
+
+  const bar = el('div', 'live-bar');
+  bar.setAttribute('role', 'status');
+
+  if (state.phase === 'pre' && state.toGatesMin != null) {
+    bar.classList.add('is-pre');
+    bar.appendChild(
+      liveCell('Your festival starts', `in ${fmtCountdown(state.toGatesMin)}`, null),
+    );
+    host.appendChild(bar);
+    return;
+  }
+
+  if (state.phase === 'post') {
+    bar.classList.add('is-post');
+    bar.appendChild(liveCell('That’s a wrap', 'no more picks tonight 🤘', null));
+    host.appendChild(bar);
+    return;
+  }
+
+  // live
+  bar.classList.add('is-live');
+  if (state.now) {
+    const c = liveCell(
+      'Now',
+      `${state.now.slot.band} · ends ${fmtCountdown(state.now.endsInMin)}`,
+      state.now.slot.stage.color,
+    );
+    c.classList.add('live-now');
+    bar.appendChild(c);
+  }
+  if (state.next) {
+    const c = liveCell(
+      state.now ? 'Then' : 'Next',
+      `${state.next.slot.band} · in ${fmtCountdown(state.next.startsInMin)}`,
+      state.next.slot.stage.color,
+    );
+    bar.appendChild(c);
+  }
+  if (!state.now && !state.next) {
+    bar.appendChild(liveCell('Standing by', 'nothing on right now', null));
+  }
+  host.appendChild(bar);
+}
+
+function liveCell(label: string, value: string, color: string | null): HTMLElement {
+  const cell = el('div', 'live-cell');
+  const lab = el('span', 'live-label', label);
+  if (color) lab.style.setProperty('--c', color);
+  if (color) lab.classList.add('has-dot');
+  cell.appendChild(lab);
+  cell.appendChild(el('span', 'live-value', value));
+  return cell;
+}
+
+/* ---------- "your festival" stats ---------- */
+function renderStats(): HTMLElement | null {
+  const s = computeStats();
+  if (s.picks === 0) return null;
+
+  const panel = el('section', 'stats-panel');
+  panel.appendChild(el('h2', 'stats-title', 'Your festival'));
+
+  const grid = el('div', 'stats-grid');
+  const tile = (num: string, label: string): HTMLElement => {
+    const t = el('div', 'stats-tile');
+    t.appendChild(el('span', 'stats-num', num));
+    t.appendChild(el('span', 'stats-tile-label', label));
+    return t;
+  };
+
+  grid.appendChild(tile(String(s.picks), s.picks === 1 ? 'set' : 'sets'));
+  const hours = Math.floor(s.onSiteMin / 60);
+  const mins = s.onSiteMin % 60;
+  grid.appendChild(tile(hours ? `${hours}h${mins ? ` ${mins}m` : ''}` : `${mins}m`, 'on site'));
+  grid.appendChild(tile(String(s.daysActive), s.daysActive === 1 ? 'day' : 'days'));
+  const clashTile = tile(String(s.clashes), s.clashes === 1 ? 'clash' : 'clashes');
+  if (s.clashes) clashTile.classList.add('is-clash');
+  grid.appendChild(clashTile);
+  panel.appendChild(grid);
+
+  if (s.busiest) {
+    const line = el(
+      'p',
+      'stats-note',
+      `Busiest day: ${s.busiest.label} (${s.busiest.count} sets). Stage split — 🟢 ${s.perStage.rugina} · 🟣 ${s.perStage.brasov} · 🟠 ${s.perStage.calmuc}.`,
+    );
+    panel.appendChild(line);
+  }
+  return panel;
+}
+
+/* ---------- band search ---------- */
+function renderSearch(): HTMLElement {
+  const wrap = el('div', 'search-wrap');
+
+  const input = el('input', 'search-input') as HTMLInputElement;
+  input.type = 'search';
+  input.placeholder = '🔎 Find a band';
+  input.setAttribute('aria-label', 'Find a band across all days');
+  input.autocomplete = 'off';
+
+  const results = el('div', 'search-results');
+  results.hidden = true;
+
+  const close = (): void => {
+    results.hidden = true;
+    results.innerHTML = '';
+  };
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    results.innerHTML = '';
+    if (q.length < 2) {
+      results.hidden = true;
+      return;
+    }
+    const matches = ALL_SLOTS.filter((s) => s.band.toLowerCase().includes(q)).slice(0, 8);
+    if (matches.length === 0) {
+      const none = el('div', 'search-none', 'No band matches');
+      results.appendChild(none);
+      results.hidden = false;
+      return;
+    }
+    for (const slot of matches) {
+      const item = el('button', 'search-item');
+      item.type = 'button';
+      const dayLabel = DAYS.find((d) => d.id === slot.dayId)?.label ?? '';
+      const name = el('span', 'search-band', slot.band);
+      name.style.setProperty('--c', slot.stage.color);
+      item.appendChild(name);
+      item.appendChild(
+        el('span', 'search-meta', `${dayLabel} · ${slot.startLabel} · ${slot.stage.name}`),
+      );
+      item.addEventListener('click', () => {
+        input.value = '';
+        close();
+        jumpToSlot(slot);
+      });
+      results.appendChild(item);
+    }
+    results.hidden = false;
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      input.value = '';
+      close();
+    }
+  });
+  document.addEventListener('click', (e) => {
+    if (!wrap.contains(e.target as Node)) close();
+  });
+
+  wrap.appendChild(input);
+  wrap.appendChild(results);
+  return wrap;
+}
+
+/** Switch to a set's day, then scroll it into view with a brief highlight. */
+function jumpToSlot(slot: SetSlot): void {
+  // "Only my picks" would hide an unpicked search hit — turn it off first.
+  if (onlyPicks && !selection.has(slot.id)) {
+    onlyPicks = false;
+    const cb = document.querySelector<HTMLInputElement>('.toolbar .switch input');
+    if (cb) cb.checked = false;
+  }
+  if (activeDayId !== slot.dayId) {
+    activeDayId = slot.dayId;
+    saveActiveDay(slot.dayId);
+  }
+  refreshChrome();
+  renderContent(document.getElementById('content') as HTMLElement);
+  requestAnimationFrame(() => {
+    const node = document.querySelector<HTMLElement>(`.set[data-slot="${cssEscape(slot.id)}"]`);
+    if (!node) return;
+    node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    node.classList.remove('flash');
+    void node.offsetWidth; // restart the animation
+    node.classList.add('flash');
+    window.setTimeout(() => node.classList.remove('flash'), 1600);
+  });
+}
+
+function cssEscape(s: string): string {
+  const anyCss = window.CSS as unknown as { escape?: (v: string) => string };
+  return anyCss?.escape ? anyCss.escape(s) : s.replace(/["\\]/g, '\\$&');
+}
+
+/* ---------- share picks as a link ---------- */
+function renderPicksLinkButton(): HTMLElement {
+  const btn = el('button', 'btn-ghost btn-picks-link', '🔗 Share picks link');
+  btn.title = 'Copy a link that reopens your exact picks on another device';
+  btn.addEventListener('click', async () => {
+    if (selection.size() === 0) {
+      const original = btn.textContent;
+      btn.textContent = 'No picks yet';
+      setTimeout(() => (btn.textContent = original), 1600);
+      return;
+    }
+    const original = btn.textContent;
+    btn.disabled = true;
+    try {
+      const { outcome } = await sharePicksLink();
+      btn.textContent =
+        outcome === 'copied'
+          ? 'Link copied ✓'
+          : outcome === 'shared'
+            ? 'Shared ✓'
+            : outcome === 'empty'
+              ? 'No picks yet'
+              : 'Copy failed';
+    } catch {
+      btn.textContent = 'Copy failed';
+    } finally {
+      setTimeout(() => {
+        btn.textContent = original;
+        btn.disabled = false;
+      }, 1600);
+    }
+  });
+  return btn;
 }
 
 function minutesToLabel(min: number): string {

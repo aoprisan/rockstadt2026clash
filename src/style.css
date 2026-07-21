@@ -24,6 +24,9 @@
   --accent-2: #cbbda2;
   /* Ember — the one loud ink, reserved for clash/alarm. */
   --ember: #ff4122;
+  /* Amber — a quieter caution ink for tight stage-to-stage crossings; a rung
+     below ember so a true clash still owns the loudest signal. */
+  --amber: #d6a04a;
   /* Stage inks — the festival's real stage identity, unchanged. */
   --rugina: #7ec524;
   --brasov: #c026d3;
@@ -855,9 +858,6 @@ body {
   line-height: 1.4;
 }
 .clash-panel.ok {
-  display: flex;
-  align-items: center;
-  gap: 10px;
   border-color: color-mix(in srgb, var(--ok) 45%, var(--line));
   background: color-mix(in srgb, var(--ok) 10%, var(--panel));
 }
@@ -1088,8 +1088,8 @@ body {
   align-items: center;
   gap: 5px;
   flex-wrap: wrap;
-  /* leave room for the absolute "Info" pill in the bottom-right corner */
-  padding-right: 34px;
+  /* leave room for the absolute Listen + Info pills in the bottom-right */
+  padding-right: 56px;
 }
 .set-time {
   font-family: var(--font-mono);
@@ -1178,10 +1178,48 @@ body {
 .set-flag.check {
   color: #fff;
 }
-.set-link {
+.set-flag.walk {
+  font-size: 0.72rem;
+  color: var(--amber);
+}
+
+/* Tight crossing = a dashed amber outline; a heads-up, not the ember shout. */
+.set.tight {
+  border-left-color: var(--amber);
+  box-shadow: 0 0 0 1px var(--amber) inset;
+  outline: 1px dashed color-mix(in srgb, var(--amber) 70%, transparent);
+  outline-offset: -3px;
+}
+
+/* Search / jump highlight flash. */
+.set.flash {
+  animation: set-flash 1.5s ease;
+}
+@keyframes set-flash {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px transparent inset;
+  }
+  20%,
+  60% {
+    box-shadow: 0 0 0 2px var(--bone) inset, 0 0 18px rgba(236, 227, 208, 0.5);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .set.flash {
+    animation: none;
+  }
+}
+/* Bottom-right action pills: ▶ Listen and ↗ Info, share one squared look. */
+.set-actions {
   position: absolute;
   bottom: 4px;
   right: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.set-pill {
   display: inline-flex;
   align-items: center;
   gap: 3px;
@@ -1193,24 +1231,43 @@ body {
   text-decoration: none;
   color: #fff;
   padding: 3px 6px;
-  border-radius: 999px;
+  border-radius: 3px;
   background: var(--stage);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
   transition: transform 0.1s, box-shadow 0.12s, filter 0.12s;
 }
-.set-link .set-link-icon {
+.set-pill .set-pill-icon {
   font-size: 0.72rem;
 }
-.set-link:hover {
+.set-listen .set-pill-icon {
+  font-size: 0.6rem;
+}
+.set-pill:hover {
   filter: brightness(1.12);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
 }
-.set-link:active {
+.set-pill:active {
   transform: scale(0.94);
 }
-.set.picked .set-link {
+.set.picked .set-pill {
   background: #fff;
   color: var(--stage);
+}
+
+/* Genre caption under the band name — quiet, clips on short sets. */
+.set-genre {
+  font-family: var(--font-mono);
+  font-size: 0.54rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--muted);
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.set.picked .set-genre {
+  color: rgba(255, 255, 255, 0.75);
 }
 
 /* ---------- empty ---------- */
@@ -1270,6 +1327,339 @@ body {
 @media (min-width: 560px) {
   .set-band {
     font-size: 1rem;
+  }
+}
+
+/* ---------- data-update banner ---------- */
+.update-banner-wrap:empty {
+  display: none;
+}
+.update-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 16px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--amber);
+  border-left-width: 3px;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--amber) 12%, var(--panel));
+}
+.update-banner-icon {
+  color: var(--amber);
+  font-weight: 700;
+  font-size: 1rem;
+}
+.update-banner-text {
+  flex: 1;
+  font-size: 0.76rem;
+  color: var(--text);
+  line-height: 1.35;
+}
+.update-banner-close {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+/* ---------- "now / next" live bar ---------- */
+.live-bar-wrap:empty {
+  display: none;
+}
+.live-bar {
+  display: flex;
+  align-items: stretch;
+  margin: 0 16px 12px;
+  border: 1px solid var(--line-strong);
+  border-top: 2px solid var(--bone);
+  border-radius: 2px;
+  background: var(--panel);
+  overflow: hidden;
+}
+.live-bar.is-live {
+  border-top-color: var(--ok);
+}
+.live-bar.is-post {
+  border-top-color: var(--muted);
+}
+.live-cell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  min-width: 0;
+}
+.live-cell + .live-cell {
+  border-left: 1px solid var(--line);
+}
+.live-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 0.54rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.live-label.has-dot::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--c);
+  flex-shrink: 0;
+}
+.live-value {
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--bone);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.live-now .live-label {
+  color: var(--ok);
+}
+
+/* ---------- tight-transition block (inside the clash panel) ---------- */
+.tight-block {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed color-mix(in srgb, var(--amber) 55%, var(--line));
+}
+.clash-panel.ok .tight-block {
+  border-top-color: color-mix(in srgb, var(--amber) 55%, var(--line));
+}
+.tight-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tight-icon {
+  font-size: 1rem;
+}
+.tight-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--amber);
+}
+.tight-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tight-item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  font-size: 0.8rem;
+}
+.tight-band {
+  position: relative;
+  padding-left: 10px;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.tight-band::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 13px;
+  border-radius: 2px;
+  background: var(--c);
+}
+.tight-arrow {
+  color: var(--muted);
+}
+.tight-gap {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.02em;
+  color: var(--amber);
+  font-weight: 600;
+  background: color-mix(in srgb, var(--amber) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--amber) 40%, transparent);
+  padding: 2px 7px;
+  border-radius: 2px;
+}
+.tight-gap.is-short {
+  color: color-mix(in srgb, var(--amber) 90%, #fff);
+  font-weight: 700;
+  background: color-mix(in srgb, var(--amber) 24%, transparent);
+  border-color: var(--amber);
+}
+
+/* ---------- band search ---------- */
+.search-wrap {
+  position: relative;
+}
+.search-input {
+  width: 150px;
+  max-width: 42vw;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  padding: 7px 10px;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+}
+.search-input::placeholder {
+  color: var(--muted);
+}
+.search-results {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 45;
+  width: min(320px, 82vw);
+  max-height: 320px;
+  overflow: auto;
+  padding: 4px;
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+}
+.search-results[hidden] {
+  display: none;
+}
+.search-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  color: var(--text);
+  cursor: pointer;
+}
+.search-item:hover,
+.search-item:focus-visible {
+  background: var(--panel-2);
+}
+.search-band {
+  position: relative;
+  padding-left: 10px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+}
+.search-band::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 13px;
+  border-radius: 2px;
+  background: var(--c);
+}
+.search-meta {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+.search-none {
+  padding: 10px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+/* ---------- "your festival" stats ---------- */
+.stats-panel {
+  margin: 20px 16px 8px;
+  padding: 14px 14px 16px;
+  border: 1px solid var(--line);
+  border-top: 2px solid var(--muted);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+.stats-title {
+  margin: 0 0 12px;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--bone);
+}
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.stats-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 6px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+}
+.stats-num {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--bone);
+  font-variant-numeric: tabular-nums;
+}
+.stats-tile-label {
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+}
+.stats-tile.is-clash {
+  border-color: var(--ember);
+}
+.stats-tile.is-clash .stats-num {
+  color: var(--ember);
+}
+.stats-note {
+  margin: 12px 0 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+@media (max-width: 400px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 

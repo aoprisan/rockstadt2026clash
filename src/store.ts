@@ -1,5 +1,6 @@
 const KEY = 'ref2026.selection.v1';
 const DAY_KEY = 'ref2026.activeDay.v1';
+const SEEN_VERSION_KEY = 'ref2026.dataVersion.v1';
 
 type Listener = () => void;
 
@@ -31,6 +32,12 @@ class SelectionStore {
 
   clear(): void {
     this.selected.clear();
+    this.persist();
+  }
+
+  /** Replace the entire selection at once (used when importing a shared link). */
+  replaceAll(ids: string[]): void {
+    this.selected = new Set(ids);
     this.persist();
   }
 
@@ -73,6 +80,23 @@ export function loadActiveDay(fallback: string): string {
 export function saveActiveDay(id: string): void {
   try {
     localStorage.setItem(DAY_KEY, id);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** The data version this device last acknowledged, or null on first visit. */
+export function loadSeenVersion(): string | null {
+  try {
+    return localStorage.getItem(SEEN_VERSION_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function saveSeenVersion(v: string): void {
+  try {
+    localStorage.setItem(SEEN_VERSION_KEY, v);
   } catch {
     /* ignore */
   }

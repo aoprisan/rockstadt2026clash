@@ -7,6 +7,13 @@ export const FESTIVAL = {
   dates: '27–31 July 2026',
 };
 
+/**
+ * Bump whenever the running order below changes (a set added, dropped or
+ * re-timed). Returning visitors whose last-seen stamp differs get a one-time
+ * "running order updated" banner so stale plans don't go unnoticed.
+ */
+export const DATA_VERSION = '2026-07-21';
+
 export const STAGES: Record<StageId, Stage> = {
   rugina: { id: 'rugina', name: 'Adrian Rugină Stage', color: '#7ec524' },
   brasov: { id: 'brasov', name: 'Brașov Stage', color: '#c026d3' },

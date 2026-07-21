@@ -1,7 +1,22 @@
 import { DAYS, STAGES } from './data';
+import { bandGenre, bandListen } from './band-meta';
 import type { FestivalDay, SetSlot, StageId } from './types';
 
 const STAGE_ORDER: StageId[] = ['rugina', 'brasov', 'calmuc'];
+
+/**
+ * The festival runs 27–31 July 2026 in Eastern European Summer Time (UTC+3).
+ * Converting each set to an absolute UTC instant lets "now / next" and the
+ * calendar export line up regardless of the viewer's own device timezone.
+ */
+const FEST_UTC_OFFSET_H = 3;
+
+export function festivalInstant(isoDate: string, hhmm: string): Date {
+  const [y, mo, d] = isoDate.split('-').map(Number);
+  const [h, mi] = hhmm.split(':').map(Number);
+  const day = h < 8 ? d + 1 : d; // small-hours sets roll into the next date
+  return new Date(Date.UTC(y, mo - 1, day, h - FEST_UTC_OFFSET_H, mi));
+}
 
 /**
  * Convert "HH:MM" into minutes from a noon anchor so that sets running past
@@ -37,8 +52,12 @@ export function buildSlots(day: FestivalDay): SetSlot[] {
         startLabel: raw.start,
         endLabel: raw.end,
         link: bandLink(raw.band, raw.link),
+        listen: bandListen(raw.band),
+        genre: bandGenre(raw.band),
         start: toMinutes(raw.start),
         end: toMinutes(raw.end),
+        startAt: festivalInstant(day.date, raw.start),
+        endAt: festivalInstant(day.date, raw.end),
       });
     }
   }
@@ -99,4 +118,77 @@ export function fmtDuration(min: number): string {
   if (h && m) return `${h}h ${m}m`;
   if (h) return `${h}h`;
   return `${m}m`;
+}
+
+/**
+ * Rough walking time between stages, in minutes. The three stages sit close
+ * together on the festival ground, but you still can't teleport: a set ending
+ * on one stage and the next you've picked starting on another needs a moment.
+ */
+const STAGE_WALK: Record<StageId, Record<StageId, number>> = {
+  rugina: { rugina: 0, brasov: 4, calmuc: 6 },
+  brasov: { rugina: 4, brasov: 0, calmuc: 4 },
+  calmuc: { rugina: 6, brasov: 4, calmuc: 0 },
+};
+
+/** Comfort margin on top of the raw walk before a hop counts as "tight". */
+const TIGHT_BUFFER = 3;
+
+export function walkMinutes(a: StageId, b: StageId): number {
+  return STAGE_WALK[a][b];
+}
+
+export interface Transition {
+  from: SetSlot;
+  to: SetSlot;
+  /** gap between `from` ending and `to` starting, in minutes (>= 0) */
+  gap: number;
+  /** estimated walking time between the two stages, in minutes */
+  walk: number;
+  /** gap minus walk — negative means you literally can't make it in time */
+  slack: number;
+}
+
+/**
+ * Flag back-to-back picks on *different* stages where the gap is too short to
+ * comfortably walk across — a real conflict the pure time-overlap clash check
+ * misses. For each pick we look only at the very next non-overlapping pick (the
+ * one you'd actually leave for); an earlier same-stage successor needs no walk.
+ */
+export function findTightTransitions(slots: SetSlot[]): Transition[] {
+  const byDay = new Map<string, SetSlot[]>();
+  for (const s of slots) {
+    const list = byDay.get(s.dayId) ?? [];
+    list.push(s);
+    byDay.set(s.dayId, list);
+  }
+
+  const out: Transition[] = [];
+  for (const list of byDay.values()) {
+    const sorted = [...list].sort((x, y) => x.start - y.start);
+    for (let i = 0; i < sorted.length; i++) {
+      const a = sorted[i];
+      // The set you'd move to next: the earliest pick that starts at or after
+      // this one ends (a later start that still overlaps is a clash, not a hop).
+      const b = sorted.slice(i + 1).find((s) => s.start >= a.end);
+      if (!b) continue;
+      if (b.stage.id === a.stage.id) continue; // same stage, no walk needed
+      const gap = b.start - a.end;
+      const walk = walkMinutes(a.stage.id, b.stage.id);
+      if (gap < walk + TIGHT_BUFFER) {
+        out.push({ from: a, to: b, gap, walk, slack: gap - walk });
+      }
+    }
+  }
+  return out;
+}
+
+/** Slot ids involved in at least one tight transition. */
+export function tightIds(slots: SetSlot[]): Set<string> {
+  const ids = new Set<string>();
+  for (const t of findTightTransitions(slots)) {
+    ids.add(t.from.id);
+    ids.add(t.to.id);
+  }
+  return ids;
 }

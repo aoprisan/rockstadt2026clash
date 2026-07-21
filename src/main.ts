@@ -1,7 +1,12 @@
 import './style.css';
 import { mount } from './render';
 import { init as initNotifications } from './notify';
+import { importPicksFromUrl } from './picks-link';
 import { registerSW } from 'virtual:pwa-register';
+
+// Import picks shared via a `#p=…` link before the first render so the app
+// opens straight onto the shared line-up.
+importPicksFromUrl();
 
 const app = document.getElementById('app');
 if (app) {

@@ -13,10 +13,25 @@ flags **clashes** — sets you've picked that overlap in time.
 
 - **Clash detection** — overlapping picks are highlighted in red, with a
   per-day summary listing each conflict and how long it overlaps.
+- **Tight-crossing warnings** — even when two picks don't overlap, back-to-back
+  sets on *different* stages with too small a gap to walk across are flagged in
+  amber (a rung below a true clash), with the gap and estimated walk time.
+- **Now / Next live bar** — a self-updating strip that counts down to the gates
+  before the festival, then during it shows what's on now among your picks and
+  what you're about to miss, with a live countdown.
 - **Timeline grid** — all three stages (Adrian Rugină, Brașov, Andrei Calmuc)
   side by side on a real time axis, including sets that run past midnight.
+- **Band info at a glance** — each set shows its genre and a **▶ Listen** link
+  (Spotify) alongside the info link, so you can sample a band before committing.
+- **Find a band** — search box that jumps to any act across all five days and
+  flashes it on the timeline.
+- **Your festival** — a personal summary: total sets, time on site (double
+  bookings counted once), days active, clashes and your busiest day.
 - **Your schedule, saved locally** — picks persist in `localStorage`; no
   account, no tracking.
+- **Share your picks as a link** — a compact `#p=…` link (in **Options**) that
+  reopens your exact line-up on another device, entirely client-side. Great for
+  comparing plans with friends.
 - **"Only my picks" filter** to see just your personal line-up.
 - **Set reminders** — opt in to a notification a chosen number of minutes
   (5/10/15/30) before each picked set starts. Scheduled on-device with no
@@ -71,3 +86,9 @@ the repository name; update it if the repo is renamed.
 
 Set times are transcribed from the official festival day posters and are
 **subject to change**. This is an unofficial fan-made tool.
+
+Whenever the running order changes, bump `DATA_VERSION` in `src/data.ts`.
+Returning visitors whose device last saw an older stamp then get a one-time
+"running order updated" banner so stale plans don't go unnoticed. Band genres
+and curated listen links live in `src/band-meta.ts` (keyed by band name);
+bands without an entry fall back to a Spotify search.

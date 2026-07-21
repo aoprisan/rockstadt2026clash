@@ -15,6 +15,14 @@ export interface RawSet {
   link?: string;
 }
 
+/** Optional per-band descriptive metadata, keyed by band name in band-meta.ts. */
+export interface BandMeta {
+  /** Short genre label, e.g. "Thrash metal". */
+  genre?: string;
+  /** A "listen" URL (Spotify/YouTube/Bandcamp). Falls back to a Spotify search. */
+  listen?: string;
+}
+
 export interface FestivalDay {
   id: string;
   label: string;
@@ -32,7 +40,15 @@ export interface SetSlot {
   endLabel: string;
   /** Official website / social link, or a web-search fallback. */
   link: string;
+  /** A "listen" URL — curated or a Spotify search fallback (always present). */
+  listen: string;
+  /** Short genre label, when known. */
+  genre?: string;
   /** minutes from a fixed noon anchor, monotonic across midnight */
   start: number;
   end: number;
+  /** Absolute instant the set starts, in real (UTC) time. */
+  startAt: Date;
+  /** Absolute instant the set ends, in real (UTC) time. */
+  endAt: Date;
 }
