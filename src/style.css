@@ -1052,6 +1052,11 @@ body {
   gap: 3px;
   font-size: 0.95rem;
   line-height: 1;
+  /* On narrow columns a two-icon strip plus the rain % and amount (or the
+     "probably dry" phrase) is wider than the box and used to clip on the right.
+     Let it wrap the amount onto a second line instead. */
+  flex-wrap: wrap;
+  min-width: 0;
 }
 .set-wx-icon {
   font-size: 1em;
