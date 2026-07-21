@@ -28,6 +28,11 @@ flags **clashes** — sets you've picked that overlap in time.
   correctly whatever timezone your device is in.
 - **Share as image** — export your picks to a PNG and send them straight to the
   native mobile share sheet (falls back to a download on desktop).
+- **Weather forecast** — a per-day forecast for the festival site (high/low,
+  rain chance, wind) pulled live from the free, keyless
+  [Open-Meteo](https://open-meteo.com/) API. The last result is cached in
+  `localStorage`, so the panel still shows the most recent forecast offline on
+  the festival grounds.
 - **Installable & offline** — full PWA with a service worker (manifest, icons,
   offline caching) so it works on the festival grounds with patchy signal.
 

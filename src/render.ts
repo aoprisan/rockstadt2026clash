@@ -11,6 +11,7 @@ import { selection, loadActiveDay, saveActiveDay } from './store';
 import { shareSelection } from './share';
 import { openShareApp } from './share-app';
 import { openMap } from './map';
+import { openWeather } from './weather';
 import { exportCalendar, clearCalendar, hasExported } from './calendar';
 import * as notify from './notify';
 
@@ -278,6 +279,11 @@ function renderShareBar(): HTMLElement {
   map.setAttribute('aria-label', 'Open the festival site map');
   map.addEventListener('click', () => openMap());
   bar.appendChild(map);
+
+  const weather = el('button', 'btn-ghost btn-weather', '🌤 Weather');
+  weather.setAttribute('aria-label', 'Open the festival weather forecast');
+  weather.addEventListener('click', () => openWeather());
+  bar.appendChild(weather);
 
   const shareApp = el('button', 'btn-ghost btn-share-app', '▦ Share app');
   shareApp.setAttribute('aria-label', 'Share this app with a QR code and link');
