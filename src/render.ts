@@ -11,7 +11,12 @@ import { selection, loadActiveDay, saveActiveDay } from './store';
 import { shareSelection } from './share';
 import { openShareApp } from './share-app';
 import { openMap } from './map';
-import { openWeather } from './weather';
+import {
+  openWeather,
+  setWeatherIcons,
+  subscribeForecast,
+  ensureForecast,
+} from './weather';
 import { exportCalendar, clearCalendar, hasExported } from './calendar';
 import * as notify from './notify';
 
@@ -60,6 +65,11 @@ export function mount(root: HTMLElement): void {
     renderContent(main);
     refreshChrome();
   });
+
+  // Per-set weather icons need the hourly forecast; load it in the background
+  // and re-render the timeline once it arrives (from cache, then network).
+  subscribeForecast(() => renderContent(main));
+  void ensureForecast();
 
   renderContent(main);
   refreshChrome();
@@ -385,7 +395,7 @@ function renderContent(main: HTMLElement): void {
   const clashing = clashingIds(selectedSlots());
 
   main.appendChild(renderClashSummary(day));
-  main.appendChild(renderTimeline(slots, clashing));
+  main.appendChild(renderTimeline(slots, clashing, day.date));
 }
 
 function clashBandLink(slot: SetSlot): HTMLAnchorElement {
@@ -450,7 +460,11 @@ function renderClashSummary(day: FestivalDay): HTMLElement {
   return panel;
 }
 
-function renderTimeline(slots: SetSlot[], clashing: Set<string>): HTMLElement {
+function renderTimeline(
+  slots: SetSlot[],
+  clashing: Set<string>,
+  dayDate: string,
+): HTMLElement {
   const visible = onlyPicks ? slots.filter((s) => selection.has(s.id)) : slots;
 
   const wrap = el('div', 'timeline-wrap');
@@ -498,7 +512,7 @@ function renderTimeline(slots: SetSlot[], clashing: Set<string>): HTMLElement {
     col.style.setProperty('--stage', stageColor(stageKey));
     const colSlots = visible.filter((s) => s.stage.id === stageKey);
     for (const slot of colSlots) {
-      col.appendChild(renderSlot(slot, top, clashing));
+      col.appendChild(renderSlot(slot, top, clashing, dayDate));
     }
     cols.appendChild(col);
   }
@@ -518,7 +532,12 @@ function renderTimeline(slots: SetSlot[], clashing: Set<string>): HTMLElement {
   return wrap;
 }
 
-function renderSlot(slot: SetSlot, top: number, clashing: Set<string>): HTMLElement {
+function renderSlot(
+  slot: SetSlot,
+  top: number,
+  clashing: Set<string>,
+  dayDate: string,
+): HTMLElement {
   const y = (slot.start - top) * PX_PER_MIN;
   const h = (slot.end - slot.start) * PX_PER_MIN;
   const node = el('button', 'set');
@@ -541,8 +560,26 @@ function renderSlot(slot: SetSlot, top: number, clashing: Set<string>): HTMLElem
 
   const band = el('span', 'set-band', slot.band);
   node.appendChild(band);
+
+  const timeRow = el('div', 'set-timerow');
   const time = el('span', 'set-time', `${slot.startLabel}–${slot.endLabel}`);
-  node.appendChild(time);
+  timeRow.appendChild(time);
+
+  // Forecast for the hours this set runs — one or more icons depending on how
+  // long the set is and whether the sky changes across it.
+  const wx = setWeatherIcons(dayDate, slot.start, slot.end);
+  if (wx.length) {
+    const strip = el('span', 'set-weather');
+    strip.setAttribute('aria-label', `Forecast: ${wx.map((c) => c.label).join(', then ')}`);
+    strip.title = wx.map((c) => c.label).join(' → ');
+    for (const c of wx) {
+      const ic = el('span', 'set-wx-icon', c.icon);
+      ic.setAttribute('aria-hidden', 'true');
+      strip.appendChild(ic);
+    }
+    timeRow.appendChild(strip);
+  }
+  node.appendChild(timeRow);
 
   if (isClash) node.appendChild(el('span', 'set-flag', '⚠'));
   else if (picked) node.appendChild(el('span', 'set-flag check', '✓'));

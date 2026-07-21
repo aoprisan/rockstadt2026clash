@@ -967,10 +967,28 @@ body {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
+.set-timerow {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  /* leave room for the absolute "Info" pill in the bottom-right corner */
+  padding-right: 34px;
+}
 .set-time {
   font-size: 0.6rem;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
+}
+.set-weather {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  font-size: 0.66rem;
+  line-height: 1;
+}
+.set.picked .set-weather {
+  filter: saturate(1.15);
 }
 .set.picked {
   background: color-mix(in srgb, var(--stage) 55%, var(--panel));

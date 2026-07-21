@@ -46,6 +46,83 @@ let dialog: HTMLDialogElement | null = null;
 // build their strip lazily without re-fetching.
 let hourIndex = new Map<string, HourForecast>();
 
+// The timeline shows per-set weather icons, so it needs the hourly forecast in
+// memory whether or not the weather dialog has ever been opened. We load it
+// once (cache first, then a background refresh) and let interested views
+// subscribe for a re-render when the data lands.
+let ensurePromise: Promise<void> | null = null;
+const forecastListeners = new Set<() => void>();
+
+function notifyForecast(): void {
+  forecastListeners.forEach((cb) => cb());
+}
+
+/** Be notified when hourly forecast data becomes (or changes to) available. */
+export function subscribeForecast(cb: () => void): () => void {
+  forecastListeners.add(cb);
+  return () => forecastListeners.delete(cb);
+}
+
+/**
+ * Make sure the hourly forecast is in memory. Shows cached data instantly and
+ * refreshes from the network in the background. Safe to call repeatedly — the
+ * work happens at most once per page load.
+ */
+export function ensureForecast(): Promise<void> {
+  if (ensurePromise) return ensurePromise;
+  ensurePromise = (async () => {
+    const cached = readCache();
+    if (cached) {
+      hourIndex = new Map(cached.hours.map((h) => [h.time, h]));
+      notifyForecast();
+      if (Date.now() - cached.fetchedAt < CACHE_TTL_MS) return;
+    }
+    try {
+      const { days, hours } = await fetchForecast();
+      writeCache({ fetchedAt: Date.now(), days, hours });
+      hourIndex = new Map(hours.map((h) => [h.time, h]));
+      notifyForecast();
+    } catch {
+      /* offline / API down — keep whatever the cache gave us (if anything) */
+    }
+  })();
+  return ensurePromise;
+}
+
+/**
+ * Weather icons covering a single set's time span, given the day's ISO date and
+ * the set's start/end in noon-anchored minutes (see schedule.toMinutes).
+ *
+ * One icon per festival hour the set touches, with consecutive identical
+ * conditions collapsed: a short set within one hour shows a single icon, while
+ * a longer set that runs through changing skies shows how the weather shifts
+ * across it. Returns [] until forecast data is available.
+ */
+export function setWeatherIcons(
+  dayDate: string,
+  startMin: number,
+  endMin: number,
+): { icon: string; label: string }[] {
+  if (hourIndex.size === 0) return [];
+  const out: { icon: string; label: string }[] = [];
+  // Snap to the start of the hour the set begins in, then step hour by hour
+  // until the set ends. Noon-anchored minute 720 is the following midnight, so
+  // anything at or beyond it belongs to the next calendar day.
+  const firstHour = Math.floor(startMin / 60) * 60;
+  for (let m = firstHour; m < endMin; m += 60) {
+    const realHour = (((Math.floor(m / 60) + 12) % 24) + 24) % 24;
+    const onDate = m >= 720 ? addDays(dayDate, 1) : dayDate;
+    const key = `${onDate}T${String(realHour).padStart(2, '0')}:00`;
+    const h = hourIndex.get(key);
+    if (!h || h.code == null) continue;
+    const cond = describe(h.code);
+    const prev = out[out.length - 1];
+    if (prev && prev.icon === cond.icon) continue; // collapse runs of same sky
+    out.push(cond);
+  }
+  return out;
+}
+
 /** Open a panel with the festival weather forecast (daily + hourly). */
 export function openWeather(): void {
   if (!dialog) dialog = buildDialog();
