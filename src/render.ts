@@ -104,14 +104,20 @@ export function mount(root: HTMLElement): void {
   startForecastAutoRefresh();
 
   renderUpdateBanner();
+  renderClock();
   renderLiveBar();
   renderContent(main);
   refreshChrome();
 
-  // "Now / Next" ticks forward on its own while the app sits open all evening.
+  // The clock ticks every second; "Now / Next" ticks forward on its own while
+  // the app sits open all evening.
+  window.setInterval(renderClock, 1_000);
   window.setInterval(renderLiveBar, 30_000);
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) renderLiveBar();
+    if (!document.hidden) {
+      renderClock();
+      renderLiveBar();
+    }
   });
 }
 
@@ -122,6 +128,12 @@ function renderHeader(): HTMLElement {
   const sub = el('p', 'brand-sub');
   sub.textContent = `${FESTIVAL.edition} · ${FESTIVAL.dates} · ${FESTIVAL.location}`;
   title.appendChild(sub);
+
+  // Live wall clock — the current date and time, ticking while the app is open.
+  const clock = el('p', 'brand-clock');
+  clock.id = 'header-clock';
+  title.appendChild(clock);
+
   header.appendChild(title);
 
   const stats = el('div', 'header-stats');
@@ -845,6 +857,26 @@ function renderUpdateBanner(): void {
   });
   bar.appendChild(dismiss);
   host.appendChild(bar);
+}
+
+/* ---------- live wall clock ---------- */
+function renderClock(): void {
+  const host = document.getElementById('header-clock');
+  if (!host) return;
+  const now = new Date();
+  const date = now.toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
+  const time = now.toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  host.innerHTML = '';
+  host.appendChild(el('span', 'clock-date', `${date} · `));
+  host.appendChild(el('span', 'clock-time', time));
 }
 
 /* ---------- "now / next" live bar ---------- */

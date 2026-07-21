@@ -85,6 +85,24 @@ body {
   line-height: 1.3;
 }
 
+.brand-clock {
+  margin: 6px 0 0;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.brand-clock .clock-date {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.66rem;
+}
+.brand-clock .clock-time {
+  color: var(--accent);
+  font-weight: 700;
+}
+
 .header-stats {
   display: flex;
   gap: 8px;
