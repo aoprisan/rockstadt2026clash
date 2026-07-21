@@ -678,7 +678,10 @@ function renderSlot(
   if (wx.icons.length || wx.precip != null) {
     const strip = el('span', 'set-weather');
     const labels = wx.icons.map((c) => c.label).join(', then ');
-    const mmText = wx.precipMm != null && wx.precipMm > 0 ? `${fmtMm(wx.precipMm)} mm` : '';
+    // Show the amount when it's non-zero, or alongside a rain chance so a "%"
+    // never sits next to a blank (a dry set reads "0 mm").
+    const showMm = wx.precipMm != null && (wx.precipMm > 0 || wx.precip != null);
+    const mmText = showMm ? `${fmtMm(wx.precipMm!)} mm` : '';
     const rainText = wx.precip != null ? `${Math.round(wx.precip)}% rain` : '';
     // Pair the chance with the amount in the tooltip: "40% rain · 3.2 mm".
     const rainDetail = [rainText, mmText].filter(Boolean).join(' · ');
@@ -698,8 +701,8 @@ function renderSlot(
       if (wx.precip >= 50) rain.classList.add('is-wet');
       strip.appendChild(rain);
     }
-    if (wx.precipMm != null && wx.precipMm > 0) {
-      const amount = el('span', 'set-wx-mm', `${fmtMm(wx.precipMm)}mm`);
+    if (showMm) {
+      const amount = el('span', 'set-wx-mm', `${fmtMm(wx.precipMm!)}mm`);
       amount.setAttribute('aria-hidden', 'true');
       strip.appendChild(amount);
     }

@@ -10,7 +10,10 @@ const API = 'https://api.open-meteo.com/v1/forecast';
 
 // Cache the last good forecast so the panel still shows something on the
 // festival grounds with patchy signal (this is an offline-first PWA).
-const CACHE_KEY = 'ref2026:weather';
+// Namespaced with a schema version: bump the suffix whenever the cached shape
+// changes (e.g. adding precipMm) so an older build's entry is ignored rather
+// than rendered without the new fields until its TTL lapses.
+const CACHE_KEY = 'ref2026:weather:v2';
 const CACHE_TTL_MS = 60 * 60 * 1000; // an hour is plenty for a daily forecast
 
 // Festival sets run from mid-afternoon well past midnight, so the "day" we
@@ -466,7 +469,10 @@ function renderDays(body: HTMLElement, days: DailyForecast[], hours: HourForecas
       meta.appendChild(chip(`${Math.round(f!.tMax!)}° / ${Math.round(f!.tMin!)}°`));
     }
     if (f?.precip != null) meta.appendChild(chip(`💧 ${Math.round(f.precip)}%`));
-    if (f?.precipMm != null && f.precipMm > 0) {
+    // Pair the chance with an amount: show mm whenever it's non-zero, or when a
+    // rain chance is on screen (so a "22%" never sits beside a blank — a dry
+    // day reads an explicit "0 mm").
+    if (f?.precipMm != null && (f.precipMm > 0 || f.precip != null)) {
       meta.appendChild(chip(`🌧 ${fmtMm(f.precipMm)} mm`));
     }
     if (f?.wind != null) meta.appendChild(chip(`💨 ${Math.round(f.wind)} km/h`));
@@ -552,9 +558,12 @@ function renderHours(container: HTMLElement, date: string): void {
 
     const mm = document.createElement('span');
     mm.className = 'weather-hour-mm';
-    // Only show an amount when rain is actually expected — "0 mm" under every
-    // dry hour is just noise.
-    mm.textContent = h.precipMm != null && h.precipMm > 0 ? `${fmtMm(h.precipMm)} mm` : '';
+    // Show an amount when rain is expected, or alongside a rain chance so the
+    // column never pairs a "%" with a blank (a dry hour reads "0 mm").
+    mm.textContent =
+      h.precipMm != null && (h.precipMm > 0 || h.precip != null)
+        ? `${fmtMm(h.precipMm)} mm`
+        : '';
     cell.appendChild(mm);
 
     scroll.appendChild(cell);
@@ -569,11 +578,12 @@ function hasTemp(f: DailyForecast | undefined): boolean {
 }
 
 /**
- * Format a precipitation amount in mm: one decimal for light rain (where the
- * difference between 0.2 and 1.5 mm matters), whole numbers once it's heavy
- * enough that the fraction is noise.
+ * Format a precipitation amount in mm: a bare "0" for a dry forecast, one
+ * decimal for light rain (where the difference between 0.2 and 1.5 mm matters),
+ * whole numbers once it's heavy enough that the fraction is noise.
  */
 export function fmtMm(mm: number): string {
+  if (mm === 0) return '0';
   return mm < 10 ? mm.toFixed(1) : String(Math.round(mm));
 }
 
