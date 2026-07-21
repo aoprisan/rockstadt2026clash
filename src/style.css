@@ -987,6 +987,10 @@ body {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  /* The set is a flex column; without this, a short box shrinks the NAME
+     (a -webkit-box drops lines) instead of clipping the bottom pills. Keep the
+     name rigid so it always shows in full — the pills clip off, as intended. */
+  flex-shrink: 0;
 }
 .set-timerow {
   display: flex;
@@ -1229,6 +1233,12 @@ body {
 @media (max-width: 559px) {
   .set-genre {
     display: none;
+  }
+  /* Columns are narrow enough that three-word names (e.g. "Implant pentru
+     Refuz") wrap past two lines; dropping the genre frees the room, so let the
+     name run to three lines instead of ellipsing mid-word. */
+  .set-band {
+    -webkit-line-clamp: 3;
   }
 }
 
