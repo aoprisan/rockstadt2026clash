@@ -22,7 +22,6 @@ export const DAYS: FestivalDay[] = [
     sets: {
       rugina: [
         { band: 'Reverse The Moment', start: '15:50', end: '16:35' },
-        { band: 'Crowbar', start: '17:30', end: '18:15' },
         { band: 'Heaven Shall Burn', start: '19:15', end: '20:15' },
         { band: 'Sabaton', start: '21:30', end: '23:15' },
       ],
