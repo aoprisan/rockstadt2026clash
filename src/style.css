@@ -980,6 +980,8 @@ body {
   font-size: 0.74rem;
   font-weight: 700;
   line-height: 1.05;
+  /* keep the name clear of the absolute clash/pick flag in the top-right */
+  padding-right: 16px;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -991,8 +993,6 @@ body {
   align-items: center;
   gap: 5px;
   flex-wrap: wrap;
-  /* leave room for the absolute Listen + Info pills in the bottom-right corner */
-  padding-right: 56px;
 }
 .set-time {
   font-size: 0.6rem;
@@ -1120,11 +1120,13 @@ body {
 }
 
 /* Bottom-right action pills: ▶ Listen and ↗ Info, sharing the original
-   rounded gold pill. */
+   rounded gold pill. Kept in normal flow (pushed to the bottom-right with
+   margin-top:auto) rather than absolutely positioned, so on a narrow column
+   they can never overlap the weather/time above them — a short box simply
+   clips them off instead. */
 .set-actions {
-  position: absolute;
-  bottom: 4px;
-  right: 4px;
+  margin-top: auto;
+  align-self: flex-end;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -1218,6 +1220,15 @@ body {
 @media (min-width: 560px) {
   .set-band {
     font-size: 0.8rem;
+  }
+}
+
+/* On phone-width columns the boxes are too narrow to carry the genre caption
+   as well as the name, time, weather and pills — drop it here (it still shows
+   in search results and the band info panel). */
+@media (max-width: 559px) {
+  .set-genre {
+    display: none;
   }
 }
 
