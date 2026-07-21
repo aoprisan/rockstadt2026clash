@@ -81,6 +81,7 @@ export function mount(root: HTMLElement): void {
 function renderHeader(): HTMLElement {
   const header = el('header', 'app-header');
   const title = el('div', 'brand');
+  title.appendChild(el('span', 'brand-eyebrow', 'Running Order · Clashfinder'));
   title.appendChild(el('h1', 'brand-name', FESTIVAL.name));
   const sub = el('p', 'brand-sub');
   sub.textContent = `${FESTIVAL.edition} · ${FESTIVAL.dates} · ${FESTIVAL.location}`;

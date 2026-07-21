@@ -1,19 +1,39 @@
+/* Oswald — condensed poster face, bundled for offline PWA use. Variable
+   weight 400–700, covers Romanian latin-ext (Brașov, Rugină). */
+@font-face {
+  font-family: 'Oswald';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('./assets/oswald-var.woff2') format('woff2');
+}
+
 :root {
-  --bg: #0a0a0c;
-  --bg-2: #111114;
-  --panel: #17171c;
-  --panel-2: #1f1f26;
-  --line: #2e2e38;
-  --text: #f5f3ea;
-  --muted: #a6a299;
-  --accent: #d8c27e;
-  --accent-2: #b8924a;
+  /* Warm charred ink — soot on a poster, not neutral black. */
+  --bg: #0d0b0c;
+  --bg-2: #141010;
+  --panel: #17120f;
+  --panel-2: #201812;
+  --line: #38291d;
+  --line-strong: #4c3826;
+  /* Bone = newsprint ink; the only "brand" colour, kept restrained. */
+  --text: #ece3d0;
+  --bone: #ece3d0;
+  --muted: #9b8d7b;
+  --accent: #ece3d0;
+  --accent-2: #cbbda2;
+  /* Ember — the one loud ink, reserved for clash/alarm. */
+  --ember: #ff4122;
+  /* Stage inks — the festival's real stage identity, unchanged. */
   --rugina: #7ec524;
   --brasov: #c026d3;
   --calmuc: #e2761b;
-  --danger: #ff4d6d;
-  --ok: #2dd4a7;
-  --radius: 14px;
+  --danger: #ff4122;
+  --ok: #5bd39c;
+  --radius: 4px;
+  --font-display: 'Oswald', 'Roboto Condensed', 'Arial Narrow', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Roboto Mono', Menlo, monospace;
+  --font-body: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   color-scheme: dark;
 }
 
@@ -28,11 +48,16 @@ body {
 }
 
 body {
-  background: radial-gradient(120% 80% at 50% -10%, #1c1708 0%, var(--bg) 55%) fixed;
+  background: radial-gradient(120% 70% at 50% -8%, #1c0f0a 0%, var(--bg) 56%) fixed;
   color: var(--text);
-  font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+  font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   min-height: 100dvh;
+}
+
+:where(button, a, input, select):focus-visible {
+  outline: 2px solid var(--ember);
+  outline-offset: 2px;
 }
 
 #app {
@@ -41,35 +66,48 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* ---------- header ---------- */
+/* ---------- header / masthead ---------- */
 .app-header {
   position: relative;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 12px;
   padding: 16px 16px 12px;
   padding-top: max(16px, env(safe-area-inset-top));
+  border-bottom: 1px solid var(--line);
+}
+
+.brand-eyebrow {
+  display: block;
+  margin: 0 0 5px;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--ember);
 }
 
 .brand-name {
   margin: 0;
-  font-size: 1.15rem;
-  font-weight: 800;
-  letter-spacing: 0.5px;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   text-transform: uppercase;
-  line-height: 1.1;
-  background: linear-gradient(90deg, #ece0b4, var(--accent) 50%, var(--accent-2));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  line-height: 0.92;
+  color: var(--bone);
 }
 
 .brand-sub {
-  margin: 4px 0 0;
-  font-size: 0.72rem;
+  margin: 6px 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.02em;
   color: var(--muted);
   line-height: 1.3;
+  text-transform: uppercase;
 }
 
 .header-stats {
@@ -78,37 +116,46 @@ body {
   flex-shrink: 0;
 }
 
+/* Counters = stamped ticket stubs: mono figures, square, hard rule on top. */
 .stat {
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 48px;
-  padding: 6px 10px;
+  min-width: 46px;
+  padding: 5px 10px 6px;
   background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  border: 1px solid var(--line-strong);
+  border-top: 2px solid var(--muted);
+  border-radius: 2px;
 }
 
 .stat-num {
-  font-size: 1.1rem;
-  font-weight: 800;
+  font-family: var(--font-mono);
+  font-size: 1.15rem;
+  font-weight: 600;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .stat-label {
-  font-size: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.54rem;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.18em;
   color: var(--muted);
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 .stat-clash {
-  border-color: var(--danger);
-  background: color-mix(in srgb, var(--danger) 18%, var(--panel));
+  border-color: var(--ember);
+  border-top-color: var(--ember);
+  background: color-mix(in srgb, var(--ember) 16%, var(--panel));
 }
 .stat-clash .stat-num {
-  color: var(--danger);
+  color: var(--ember);
+}
+.stat-clash .stat-label {
+  color: color-mix(in srgb, var(--ember) 70%, var(--muted));
 }
 
 /* ---------- day tabs ---------- */
@@ -129,30 +176,46 @@ body {
 
 .day-tab {
   flex: 1 0 auto;
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  padding: 8px 12px;
+  padding: 7px 14px 8px;
   border: 1px solid var(--line);
   background: var(--panel);
   color: var(--muted);
-  border-radius: 12px;
-  font-size: 0.82rem;
-  font-weight: 700;
+  border-radius: 3px;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
   white-space: nowrap;
 }
 .day-tab .day-date {
-  font-size: 0.62rem;
-  font-weight: 600;
-  opacity: 0.8;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  opacity: 0.85;
 }
 .day-tab.active {
-  color: #0a0a0c;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  border-color: transparent;
+  color: var(--bg);
+  background: var(--bone);
+  border-color: var(--bone);
+}
+/* Ember marker under the live day — like a highlighter stripe on the sheet. */
+.day-tab.active::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: -1px;
+  height: 3px;
+  background: var(--ember);
 }
 
 /* ---------- toolbar ---------- */
@@ -258,12 +321,15 @@ body {
 }
 .switch input:checked + .switch-track::after {
   transform: translateX(16px);
-  background: #0a0a0c;
+  background: var(--bg);
 }
 .switch-label {
-  font-size: 0.82rem;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--muted);
-  font-weight: 600;
+  font-weight: 500;
   white-space: nowrap;
 }
 
@@ -338,12 +404,15 @@ body {
 
 .btn-ghost {
   background: transparent;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   color: var(--muted);
-  border-radius: 10px;
-  padding: 7px 12px;
-  font-size: 0.78rem;
-  font-weight: 600;
+  border-radius: 3px;
+  padding: 8px 12px;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   white-space: nowrap;
   cursor: pointer;
 }
@@ -393,10 +462,10 @@ body {
 .share-app-card {
   position: relative;
   padding: 22px 22px 18px;
-  border-radius: 18px;
-  border: 1px solid var(--line);
+  border-radius: 6px;
+  border: 1px solid var(--line-strong);
   background: linear-gradient(160deg, var(--panel-2), var(--panel));
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
   text-align: center;
 }
 .share-app-close {
@@ -469,8 +538,8 @@ body {
 }
 .share-app-btn.primary {
   border-color: transparent;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  color: #0a0a0c;
+  background: var(--ember);
+  color: var(--bone);
 }
 
 .btn-map {
@@ -501,10 +570,10 @@ body {
   flex-direction: column;
   max-height: calc(100dvh - 24px);
   padding: 12px;
-  border-radius: 18px;
-  border: 1px solid var(--line);
+  border-radius: 6px;
+  border: 1px solid var(--line-strong);
   background: linear-gradient(160deg, var(--panel-2), var(--panel));
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
 }
 .site-map-head {
   display: flex;
@@ -572,10 +641,10 @@ body {
   flex-direction: column;
   max-height: calc(100dvh - 24px);
   padding: 14px 16px 12px;
-  border-radius: 18px;
-  border: 1px solid var(--line);
+  border-radius: 6px;
+  border: 1px solid var(--line-strong);
   background: linear-gradient(160deg, var(--panel-2), var(--panel));
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
 }
 .weather-head {
   display: flex;
@@ -783,31 +852,59 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  border-color: color-mix(in srgb, var(--ok) 50%, var(--line));
-  background: color-mix(in srgb, var(--ok) 12%, var(--panel));
+  border-color: color-mix(in srgb, var(--ok) 45%, var(--line));
+  background: color-mix(in srgb, var(--ok) 10%, var(--panel));
 }
 .clash-panel.ok .clash-icon {
+  font-family: var(--font-mono);
   color: var(--ok);
 }
+/* Warn = a stamped, taped-off day-sheet. Ember hatch strip along the top. */
 .clash-panel.warn {
-  border-color: color-mix(in srgb, var(--danger) 55%, var(--line));
-  background: color-mix(in srgb, var(--danger) 12%, var(--panel));
+  border-color: var(--ember);
+  background:
+    repeating-linear-gradient(
+        -45deg,
+        color-mix(in srgb, var(--ember) 60%, transparent) 0 10px,
+        transparent 10px 20px
+      )
+      top / 100% 5px no-repeat,
+    color-mix(in srgb, var(--ember) 10%, var(--panel));
+  padding-top: 15px;
 }
 .clash-head {
   display: flex;
   align-items: center;
   gap: 10px;
 }
+/* The clash count reads like a rubber CLASH stamp. */
+.clash-panel.warn .clash-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--ember);
+  border: 2px solid var(--ember);
+  border-radius: 3px;
+  transform: rotate(-5deg);
+}
 .clash-icon {
   font-size: 1.2rem;
 }
-.clash-panel.warn .clash-icon {
-  color: var(--danger);
-}
 .clash-title {
   margin: 0;
-  font-size: 0.9rem;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.clash-panel.ok .clash-title {
+  font-size: 0.95rem;
 }
 .clash-list {
   list-style: none;
@@ -827,7 +924,11 @@ body {
   border-top: 1px solid var(--line);
 }
 .clash-band {
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
   padding-left: 10px;
   position: relative;
   color: var(--text);
@@ -854,12 +955,15 @@ body {
 }
 .clash-overlap {
   margin-left: auto;
-  font-size: 0.7rem;
-  color: var(--danger);
-  font-weight: 700;
-  background: color-mix(in srgb, var(--danger) 16%, transparent);
-  padding: 2px 8px;
-  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.02em;
+  color: var(--ember);
+  font-weight: 600;
+  background: color-mix(in srgb, var(--ember) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ember) 45%, transparent);
+  padding: 2px 7px;
+  border-radius: 2px;
 }
 
 /* ---------- timeline ---------- */
@@ -883,15 +987,16 @@ body {
 .stage-name {
   grid-column: span 1;
   text-align: center;
-  font-size: 0.66rem;
-  font-weight: 800;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.06em;
   padding: 6px 2px;
-  border-radius: 9px;
-  color: #0a0a0c;
+  border-radius: 2px;
+  color: var(--bg);
   background: var(--stage);
-  line-height: 1.1;
+  line-height: 1.05;
 }
 
 .timeline {
@@ -908,7 +1013,9 @@ body {
   position: absolute;
   left: 0;
   transform: translateY(-50%);
-  font-size: 0.64rem;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.02em;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
   width: 40px;
@@ -920,7 +1027,7 @@ body {
   right: 0;
   height: 1px;
   background: var(--line);
-  opacity: 0.55;
+  opacity: 0.7;
 }
 
 .stage-cols {
@@ -943,11 +1050,11 @@ body {
   justify-content: flex-start;
   gap: 2px;
   overflow: hidden;
-  padding: 5px 7px;
+  padding: 5px 8px;
   border: none;
   border-left: 3px solid var(--stage);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--stage) 22%, var(--panel));
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--stage) 20%, var(--panel));
   color: var(--text);
   text-align: left;
   cursor: pointer;
@@ -958,9 +1065,12 @@ body {
   transform: scale(0.98);
 }
 .set-band {
-  font-size: 0.74rem;
-  font-weight: 700;
-  line-height: 1.05;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  line-height: 0.98;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -976,7 +1086,9 @@ body {
   padding-right: 34px;
 }
 .set-time {
+  font-family: var(--font-mono);
   font-size: 0.6rem;
+  letter-spacing: 0.01em;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
@@ -1013,27 +1125,41 @@ body {
 .set.picked .set-time {
   color: rgba(255, 255, 255, 0.85);
 }
+/* Clash = the app shouts. Ember fill + diagonal caution-tape hatch. */
 .set.clashing {
-  background: color-mix(in srgb, var(--danger) 35%, var(--panel));
-  box-shadow: 0 0 0 2px var(--danger) inset, 0 0 14px rgba(255, 77, 109, 0.5);
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      transparent 0 7px,
+      color-mix(in srgb, var(--ember) 22%, transparent) 7px 14px
+    ),
+    color-mix(in srgb, var(--ember) 34%, var(--panel));
+  border-left-color: var(--ember);
+  box-shadow: 0 0 0 2px var(--ember) inset, 0 0 16px rgba(255, 65, 34, 0.45);
   animation: pulse 1.6s ease-in-out infinite;
 }
 @keyframes pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 2px var(--danger) inset, 0 0 10px rgba(255, 77, 109, 0.35);
+    box-shadow: 0 0 0 2px var(--ember) inset, 0 0 8px rgba(255, 65, 34, 0.3);
   }
   50% {
-    box-shadow: 0 0 0 2px var(--danger) inset, 0 0 18px rgba(255, 77, 109, 0.7);
+    box-shadow: 0 0 0 2px var(--ember) inset, 0 0 20px rgba(255, 65, 34, 0.65);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .set.clashing {
+    animation: none;
   }
 }
 .set-flag {
   position: absolute;
-  top: 4px;
-  right: 5px;
+  top: 3px;
+  right: 4px;
+  font-family: var(--font-mono);
   font-size: 0.72rem;
-  font-weight: 800;
-  color: var(--danger);
+  font-weight: 700;
+  color: var(--ember);
 }
 .set-flag.check {
   color: #fff;
@@ -1110,15 +1236,18 @@ body {
   display: none;
   align-items: center;
   gap: 8px;
-  padding: 11px 18px;
+  padding: 11px 20px;
   border: none;
-  border-radius: 999px;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  color: #0a0a0c;
-  font-weight: 700;
-  font-size: 0.85rem;
+  border-radius: 3px;
+  background: var(--ember);
+  color: var(--bone);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   cursor: pointer;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 #install-btn.show {
   display: inline-flex;
@@ -1126,6 +1255,22 @@ body {
 
 @media (min-width: 560px) {
   .set-band {
-    font-size: 0.8rem;
+    font-size: 1rem;
   }
+}
+
+/* Dialog titles share the poster voice. */
+.share-app-title,
+.site-map-title,
+.weather-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.empty-title {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
