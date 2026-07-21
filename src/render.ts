@@ -8,6 +8,7 @@ import {
   tightIds,
   fmtDuration,
   getSlot,
+  festivalInstant,
   ALL_SLOTS,
 } from './schedule';
 import {
@@ -109,13 +110,17 @@ export function mount(root: HTMLElement): void {
   renderContent(main);
   refreshChrome();
 
-  // The clock ticks every second; "Now / Next" ticks forward on its own while
-  // the app sits open all evening.
+  // The clock ticks every second; the "now" line and "Now / Next" bar creep
+  // forward on their own while the app sits open all evening.
   window.setInterval(renderClock, 1_000);
-  window.setInterval(renderLiveBar, 30_000);
+  window.setInterval(() => {
+    positionNowLine();
+    renderLiveBar();
+  }, 30_000);
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
       renderClock();
+      positionNowLine();
       renderLiveBar();
     }
   });
@@ -678,6 +683,20 @@ function renderTimeline(
   }
   grid.appendChild(axis);
 
+  // "You are here" marker: a horizontal rule at the current time, shown only
+  // while now falls within this day's schedule window (so it appears on the
+  // running day of the festival and nowhere else). positionNowLine() reads the
+  // window bounds off the element and is also re-run on a timer.
+  const nowLine = el('div', 'now-line');
+  nowLine.id = 'now-line';
+  nowLine.setAttribute('aria-hidden', 'true');
+  nowLine.dataset.top = String(top);
+  nowLine.dataset.bottom = String(bottom);
+  nowLine.dataset.date = dayDate;
+  nowLine.appendChild(el('span', 'now-line-label', 'NOW'));
+  grid.appendChild(nowLine);
+  positionNowLine(nowLine);
+
   // stage columns
   const cols = el('div', 'stage-cols');
 
@@ -877,6 +896,29 @@ function renderClock(): void {
   host.innerHTML = '';
   host.appendChild(el('span', 'clock-date', `${date} · `));
   host.appendChild(el('span', 'clock-time', time));
+}
+
+/**
+ * Place (or hide) the "now" rule on the timeline. The current instant is
+ * converted into the timeline's minutes-from-noon coordinate via the day's
+ * festival noon; the line only shows while now sits inside this day's window,
+ * which naturally limits it to the day currently running.
+ */
+function positionNowLine(line?: HTMLElement | null): void {
+  const el0 = line ?? document.getElementById('now-line');
+  if (!el0) return;
+  const top = Number(el0.dataset.top);
+  const bottom = Number(el0.dataset.bottom);
+  const date = el0.dataset.date;
+  if (!date || Number.isNaN(top) || Number.isNaN(bottom)) return;
+  const noonMs = festivalInstant(date, '12:00').getTime();
+  const nowMin = (Date.now() - noonMs) / 60_000;
+  if (nowMin < top || nowMin > bottom) {
+    el0.hidden = true;
+    return;
+  }
+  el0.hidden = false;
+  el0.style.top = `${(nowMin - top) * PX_PER_MIN}px`;
 }
 
 /* ---------- "now / next" live bar ---------- */
