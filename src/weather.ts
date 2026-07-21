@@ -139,7 +139,11 @@ async function load(): Promise<void> {
   if (!body) return;
 
   const cached = readCache();
-  const fresh = cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS;
+  // Only skip the network when the cache is recent AND already carries hourly
+  // data — a daily-only cache from an older build must be refreshed so the
+  // hourly strips have something to show.
+  const fresh =
+    cached && cached.hours.length > 0 && Date.now() - cached.fetchedAt < CACHE_TTL_MS;
 
   // Show cached data immediately if we have any; only show a spinner when we
   // have nothing at all to display.
