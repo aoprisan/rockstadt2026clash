@@ -566,16 +566,28 @@ function renderSlot(
   timeRow.appendChild(time);
 
   // Forecast for the hours this set runs — one or more icons depending on how
-  // long the set is and whether the sky changes across it.
+  // long the set is and whether the sky changes across it, plus the peak rain
+  // chance across the set.
   const wx = setWeatherIcons(dayDate, slot.start, slot.end);
-  if (wx.length) {
+  if (wx.icons.length || wx.precip != null) {
     const strip = el('span', 'set-weather');
-    strip.setAttribute('aria-label', `Forecast: ${wx.map((c) => c.label).join(', then ')}`);
-    strip.title = wx.map((c) => c.label).join(' → ');
-    for (const c of wx) {
+    const labels = wx.icons.map((c) => c.label).join(', then ');
+    const rainText = wx.precip != null ? `${Math.round(wx.precip)}% rain` : '';
+    const aria = [labels, rainText].filter(Boolean).join(' · ');
+    strip.setAttribute('aria-label', aria ? `Forecast: ${aria}` : 'Forecast');
+    strip.title = [wx.icons.map((c) => c.label).join(' → '), rainText]
+      .filter(Boolean)
+      .join(' · ');
+    for (const c of wx.icons) {
       const ic = el('span', 'set-wx-icon', c.icon);
       ic.setAttribute('aria-hidden', 'true');
       strip.appendChild(ic);
+    }
+    if (wx.precip != null) {
+      const rain = el('span', 'set-wx-rain', `💧${Math.round(wx.precip)}%`);
+      rain.setAttribute('aria-hidden', 'true');
+      if (wx.precip >= 50) rain.classList.add('is-wet');
+      strip.appendChild(rain);
     }
     timeRow.appendChild(strip);
   }

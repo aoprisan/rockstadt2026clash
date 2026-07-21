@@ -983,12 +983,28 @@ body {
 .set-weather {
   display: inline-flex;
   align-items: center;
-  gap: 1px;
-  font-size: 0.66rem;
+  gap: 3px;
+  font-size: 0.95rem;
   line-height: 1;
+}
+.set-wx-icon {
+  font-size: 1em;
+}
+.set-wx-rain {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.set-wx-rain.is-wet {
+  color: #38bdf8;
 }
 .set.picked .set-weather {
   filter: saturate(1.15);
+}
+.set.picked .set-wx-rain {
+  color: rgba(255, 255, 255, 0.85);
 }
 .set.picked {
   background: color-mix(in srgb, var(--stage) 55%, var(--panel));
