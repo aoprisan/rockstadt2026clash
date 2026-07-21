@@ -89,22 +89,33 @@ export function ensureForecast(): Promise<void> {
   return ensurePromise;
 }
 
+export interface SetWeather {
+  /**
+   * One icon per festival hour the set touches, with consecutive identical
+   * conditions collapsed: a short set within one hour shows a single icon,
+   * while a longer set that runs through changing skies shows how the weather
+   * shifts across it.
+   */
+  icons: { icon: string; label: string }[];
+  /** Peak precipitation probability (%) across the set's hours, or null. */
+  precip: number | null;
+}
+
 /**
- * Weather icons covering a single set's time span, given the day's ISO date and
- * the set's start/end in noon-anchored minutes (see schedule.toMinutes).
+ * Weather covering a single set's time span, given the day's ISO date and the
+ * set's start/end in noon-anchored minutes (see schedule.toMinutes).
  *
- * One icon per festival hour the set touches, with consecutive identical
- * conditions collapsed: a short set within one hour shows a single icon, while
- * a longer set that runs through changing skies shows how the weather shifts
- * across it. Returns [] until forecast data is available.
+ * Returns collapsed per-hour icons plus the peak rain chance over the set.
+ * `icons` is empty until forecast data is available.
  */
 export function setWeatherIcons(
   dayDate: string,
   startMin: number,
   endMin: number,
-): { icon: string; label: string }[] {
-  if (hourIndex.size === 0) return [];
+): SetWeather {
+  if (hourIndex.size === 0) return { icons: [], precip: null };
   const out: { icon: string; label: string }[] = [];
+  let precip: number | null = null;
   // Snap to the start of the hour the set begins in, then step hour by hour
   // until the set ends. Noon-anchored minute 720 is the following midnight, so
   // anything at or beyond it belongs to the next calendar day.
@@ -114,13 +125,15 @@ export function setWeatherIcons(
     const onDate = m >= 720 ? addDays(dayDate, 1) : dayDate;
     const key = `${onDate}T${String(realHour).padStart(2, '0')}:00`;
     const h = hourIndex.get(key);
-    if (!h || h.code == null) continue;
+    if (!h) continue;
+    if (h.precip != null) precip = Math.max(precip ?? 0, h.precip);
+    if (h.code == null) continue;
     const cond = describe(h.code);
     const prev = out[out.length - 1];
     if (prev && prev.icon === cond.icon) continue; // collapse runs of same sky
     out.push(cond);
   }
-  return out;
+  return { icons: out, precip };
 }
 
 /** Open a panel with the festival weather forecast (daily + hourly). */
