@@ -8,9 +8,15 @@ import type { SetSlot } from './types';
  *
  * The app has no backend, so reminders are scheduled on the device with
  * `setTimeout` and a periodic safety scan. They fire while the app is open
- * (including in a backgrounded tab / installed PWA). Notifications are shown
- * through the service worker registration when available (required on mobile)
- * and fall back to the `Notification` constructor on desktop.
+ * (including in a backgrounded tab / installed PWA) through two channels:
+ *
+ *  - **Native** — an OS notification shown through the service worker
+ *    registration when available (required on mobile) and falling back to the
+ *    `Notification` constructor on desktop. This is what reaches the user while
+ *    the app sits in the background.
+ *  - **In-app** — a listener hook (`onReminder`) the UI subscribes to so it can
+ *    surface a visible toast while the app is focused, where browsers routinely
+ *    suppress the OS notification.
  */
 
 const ENABLED_KEY = 'ref2026.notify.enabled.v1';
@@ -33,6 +39,26 @@ let timers: ReturnType<typeof setTimeout>[] = [];
 let scanTimer: ReturnType<typeof setInterval> | undefined;
 let started = false;
 let onChange: (() => void) | undefined;
+
+/** Details handed to in-app reminder listeners when a set is coming up. */
+export interface ReminderEvent {
+  slot: SetSlot;
+  /** Minutes before the set start this reminder represents. */
+  lead: number;
+}
+
+type ReminderListener = (event: ReminderEvent) => void;
+const reminderListeners = new Set<ReminderListener>();
+
+/**
+ * Subscribe to in-app reminders. The callback runs whenever a picked set enters
+ * its reminder window, so the UI can show a visible toast alongside the native
+ * OS notification. Returns an unsubscribe function.
+ */
+export function onReminder(fn: ReminderListener): () => void {
+  reminderListeners.add(fn);
+  return () => reminderListeners.delete(fn);
+}
 
 export function notificationsSupported(): boolean {
   return typeof window !== 'undefined' && 'Notification' in window;
@@ -164,6 +190,13 @@ async function show(slot: SetSlot, lead: number): Promise<void> {
 function fire(slot: SetSlot, lead: number): void {
   markFired(slot.id);
   void show(slot, lead);
+  for (const fn of reminderListeners) {
+    try {
+      fn({ slot, lead });
+    } catch {
+      /* a misbehaving listener must not stop the others */
+    }
+  }
   onChange?.();
 }
 

@@ -91,6 +91,18 @@ export function mount(root: HTMLElement): void {
 
   root.appendChild(renderShareBar());
 
+  // Host for in-app reminder toasts (the visible counterpart to the native OS
+  // notification). Fixed to the viewport, filled by the reminder subscription.
+  const toasts = el('div', 'toast-host');
+  toasts.id = 'toast-host';
+  toasts.setAttribute('aria-live', 'polite');
+  root.appendChild(toasts);
+
+  // Surface an in-app toast whenever a picked set enters its reminder window.
+  // Native notifications keep reaching the user in the background; this covers
+  // the case where the app is focused and the OS suppresses its own banner.
+  notify.onReminder(({ slot, lead }) => showReminderToast(slot, lead));
+
   selection.subscribe(() => {
     renderContent(main);
     renderLiveBar();
@@ -352,7 +364,8 @@ function renderNotifyControl(): HTMLElement | null {
   const wrap = el('div', 'notify-ctl');
 
   const toggle = el('label', 'switch');
-  toggle.title = 'Get a reminder before each picked set starts';
+  toggle.title =
+    'Get an in-app and native reminder before each picked set starts';
   const cb = el('input') as HTMLInputElement;
   cb.type = 'checkbox';
   cb.checked = notify.isEnabled();
@@ -972,6 +985,66 @@ function renderLiveBar(): void {
     bar.appendChild(liveCell('Standing by', 'nothing on right now', null));
   }
   host.appendChild(bar);
+}
+
+/* ---------- in-app reminder toasts ---------- */
+/**
+ * Show a dismissible in-app toast for an upcoming picked set. Complements the
+ * native OS notification (which browsers routinely hide while the app is
+ * focused). Tapping the toast jumps to the set on the timeline; it also
+ * self-dismisses after a short while, and old toasts are capped so a burst of
+ * back-to-back sets can't bury the screen.
+ */
+function showReminderToast(slot: SetSlot, lead: number): void {
+  const host = document.getElementById('toast-host');
+  if (!host) return;
+
+  // Keep at most a few on screen — drop the oldest first.
+  while (host.children.length >= 3) host.firstElementChild?.remove();
+
+  const toast = el('div', 'toast');
+  toast.setAttribute('role', 'status');
+  toast.style.setProperty('--c', slot.stage.color);
+
+  const dot = el('span', 'toast-dot');
+  dot.setAttribute('aria-hidden', 'true');
+  toast.appendChild(dot);
+
+  const body = el('div', 'toast-body');
+  const lead_ = Math.max(0, Math.round(lead));
+  body.appendChild(
+    el('span', 'toast-title', `${slot.band} ${lead_ > 0 ? `starts in ${lead_} min` : 'is starting'}`),
+  );
+  body.appendChild(
+    el('span', 'toast-meta', `${slot.startLabel} · ${slot.stage.name}`),
+  );
+  toast.appendChild(body);
+
+  const close = el('button', 'toast-close', '✕');
+  close.setAttribute('aria-label', `Dismiss reminder for ${slot.band}`);
+
+  let removed = false;
+  const remove = (): void => {
+    if (removed) return;
+    removed = true;
+    toast.classList.add('leaving');
+    window.setTimeout(() => toast.remove(), 200);
+  };
+
+  close.addEventListener('click', (e) => {
+    e.stopPropagation();
+    remove();
+  });
+  toast.addEventListener('click', () => {
+    remove();
+    jumpToSlot(slot);
+  });
+
+  toast.appendChild(close);
+  host.appendChild(toast);
+
+  // Auto-dismiss after ~12s so it doesn't linger through the set itself.
+  window.setTimeout(remove, 12_000);
 }
 
 function liveCell(label: string, value: string, color: string | null): HTMLElement {
