@@ -470,18 +470,67 @@ function renderShareBar(): HTMLElement {
   journal.addEventListener('click', () => openJournal());
   bar.appendChild(journal);
 
-  const shareApp = el('button', 'btn-ghost btn-share-app', '▦ App');
-  shareApp.setAttribute('aria-label', 'Share this app with a QR code and link');
-  shareApp.addEventListener('click', () => openShareApp());
-  bar.appendChild(shareApp);
-
-  const share = el('button', 'btn-ghost btn-share', '⤴ Share');
-  share.id = 'share-btn';
-  share.setAttribute('aria-label', 'Share your picks as an image');
-  share.addEventListener('click', () => handleShare(share));
-  bar.appendChild(share);
+  bar.appendChild(renderShareMenu());
 
   return bar;
+}
+
+/**
+ * One "Share" button for the whole bottom bar: a small menu opening upward
+ * with both share actions — your picks as an image, and the app itself via
+ * QR. Replaces the two separate buttons that crowded narrow phones.
+ */
+function renderShareMenu(): HTMLElement {
+  const wrap = el('div', 'share-menu-wrap');
+
+  const btn = el('button', 'btn-ghost btn-share', '⤴ Share ▾');
+  btn.id = 'share-btn';
+  btn.setAttribute('aria-haspopup', 'true');
+  btn.setAttribute('aria-expanded', 'false');
+
+  const menu = el('div', 'cal-menu share-menu');
+  menu.hidden = true;
+
+  const picks = el('button', 'cal-menu-item', '🖼 My picks as an image');
+  picks.title = 'Render your line-up to a picture and share it';
+  picks.addEventListener('click', () => {
+    close();
+    void handleShare(btn);
+  });
+
+  const app = el('button', 'cal-menu-item', '▦ Share the app (QR)');
+  app.title = 'A QR code and link that open this clashfinder';
+  app.addEventListener('click', () => {
+    close();
+    openShareApp();
+  });
+
+  menu.appendChild(picks);
+  menu.appendChild(app);
+
+  function close(): void {
+    menu.hidden = true;
+    btn.setAttribute('aria-expanded', 'false');
+  }
+  function open(): void {
+    picks.disabled = selection.size() === 0;
+    menu.hidden = false;
+    btn.setAttribute('aria-expanded', 'true');
+  }
+
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (btn.classList.contains('busy')) return;
+    menu.hidden ? open() : close();
+  });
+  document.addEventListener('click', close);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') close();
+  });
+
+  wrap.appendChild(btn);
+  wrap.appendChild(menu);
+  return wrap;
 }
 
 async function handleShare(btn: HTMLButtonElement): Promise<void> {
@@ -501,7 +550,7 @@ async function handleShare(btn: HTMLButtonElement): Promise<void> {
     btn.textContent = 'Share failed';
   } finally {
     setTimeout(() => {
-      btn.disabled = selection.size() === 0;
+      btn.disabled = false;
       btn.classList.remove('busy');
       btn.textContent = original;
     }, 1600);
@@ -543,12 +592,6 @@ function refreshChrome(): void {
   document.querySelectorAll<HTMLButtonElement>('.day-tab').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.day === activeDayId);
   });
-
-  const shareBtn = document.getElementById('share-btn') as HTMLButtonElement | null;
-  if (shareBtn && !shareBtn.classList.contains('busy')) {
-    shareBtn.disabled = selection.size() === 0;
-  }
-
 
   const stats = document.getElementById('header-stats');
   if (stats) {

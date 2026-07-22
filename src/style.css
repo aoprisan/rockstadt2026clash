@@ -2622,3 +2622,18 @@ body {
   color: var(--accent);
   font-size: 0.68rem;
 }
+
+/* One "Share" button + upward menu in the bottom bar (reuses the calendar
+   menu look; only the anchor direction differs). */
+.share-menu-wrap {
+  position: relative;
+  flex: 1;
+  display: flex;
+}
+.share-menu-wrap .btn-share {
+  flex: 1;
+}
+.share-menu {
+  top: auto;
+  bottom: calc(100% + 8px);
+}
