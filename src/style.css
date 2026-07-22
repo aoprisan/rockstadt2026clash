@@ -1870,16 +1870,16 @@ body {
   color: rgba(255, 255, 255, 0.8);
 }
 
-/* Five buttons now share the bottom bar — tighten it up on narrow phones. */
+/* Six buttons now share the bottom bar — tighten it up on narrow phones. */
 @media (max-width: 480px) {
   .share-bar {
-    gap: 6px;
-    padding-left: 10px;
-    padding-right: 10px;
+    gap: 4px;
+    padding-left: 8px;
+    padding-right: 8px;
   }
   .share-bar .btn-ghost {
-    padding: 10px 4px;
-    font-size: 0.7rem;
+    padding: 10px 2px;
+    font-size: 0.64rem;
   }
 }
 
@@ -2341,4 +2341,284 @@ body {
 .crew-meet-item {
   font-size: 0.74rem;
   font-variant-numeric: tabular-nums;
+}
+
+/* ---------- clash duels ---------- */
+.stat-settled {
+  border-color: color-mix(in srgb, var(--ok) 55%, var(--line));
+  background: color-mix(in srgb, var(--ok) 12%, var(--panel));
+}
+.stat-settled .stat-num {
+  color: var(--ok);
+}
+/* Every clash settled: calm green, but keep the list layout (unlike .ok). */
+.clash-panel.settled {
+  border-color: color-mix(in srgb, var(--ok) 50%, var(--line));
+  background: color-mix(in srgb, var(--ok) 8%, var(--panel));
+}
+.clash-panel.settled .clash-icon {
+  color: var(--ok);
+}
+.duel-card {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+.duel-top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+}
+.duel-resolved {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--ok) 45%, var(--line));
+  background: color-mix(in srgb, var(--ok) 10%, var(--panel));
+}
+.duel-resolved-text {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.35;
+}
+.duel-undo {
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.duel-undo:hover {
+  color: var(--text);
+  border-color: var(--line-strong);
+}
+.duel-odds {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.duel-odds-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--c, var(--muted));
+}
+.duel-odds-bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--c, var(--line)) 45%, var(--panel));
+}
+.duel-odds-fill {
+  height: 100%;
+  border-radius: 3px 0 0 3px;
+  background: color-mix(in srgb, var(--c, var(--muted)) 85%, #fff 0%);
+}
+.duel-odds-tag {
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.duel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.duel-btn {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--c, var(--line)) 55%, var(--line));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--c, var(--panel)) 14%, var(--panel));
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 7px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.duel-btn:hover {
+  background: color-mix(in srgb, var(--c, var(--panel)) 26%, var(--panel));
+}
+.duel-btn-split {
+  border-style: dashed;
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--panel));
+}
+.duel-btn-split:hover {
+  background: color-mix(in srgb, var(--accent) 16%, var(--panel));
+}
+
+/* Planner rows truncated by a duel split. */
+.planner-split-chip {
+  flex-shrink: 0;
+  font-size: 0.58rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  border: 1px dashed var(--accent);
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+
+/* ---------- festival journal ---------- */
+.btn-journal {
+  position: relative;
+}
+.btn-journal.has-dot::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+}
+.set-flag.rate {
+  color: var(--accent);
+  font-size: 0.62rem;
+}
+.journal-day {
+  margin-bottom: 14px;
+}
+.journal-day-head {
+  margin: 0 0 8px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.journal-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  margin-bottom: 8px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--c);
+  border-radius: 10px;
+}
+.journal-entry-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.journal-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.journal-horns {
+  display: flex;
+  gap: 2px;
+}
+.journal-horn {
+  border: none;
+  background: none;
+  font-size: 1.15rem;
+  line-height: 1;
+  padding: 3px;
+  cursor: pointer;
+  filter: grayscale(1);
+  opacity: 0.4;
+  transition: transform 0.1s, opacity 0.1s;
+}
+.journal-horn.is-on {
+  filter: none;
+  opacity: 1;
+}
+.journal-horn:active {
+  transform: scale(1.25);
+}
+.journal-horn:disabled {
+  opacity: 0.15;
+  cursor: default;
+}
+.journal-miss {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-2);
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 700;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+.journal-miss.is-skipped {
+  border-color: var(--amber);
+  color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 10%, var(--panel));
+}
+.journal-note {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-2);
+  color: var(--text);
+  font-size: 0.74rem;
+  padding: 7px 9px;
+  font-family: inherit;
+}
+.journal-note::placeholder {
+  color: color-mix(in srgb, var(--muted) 70%, transparent);
+}
+.journal-note:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.journal-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+.journal-rewind-btn {
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 22%, var(--panel)),
+    color-mix(in srgb, var(--brasov) 18%, var(--panel))
+  );
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding: 11px 14px;
+  cursor: pointer;
+}
+.journal-rewind-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Duel outcomes on the timeline: a benched loser steps back, a split set
+   carries scissors. Both stay tappable — the pick itself is unchanged. */
+.set.benched {
+  opacity: 0.55;
+  border-left-style: dashed;
+}
+.set-flag.duel {
+  color: var(--accent);
+  font-size: 0.68rem;
 }

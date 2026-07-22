@@ -6,7 +6,7 @@ import { selection } from './store';
 export const SHARE_URL = 'https://aoprisan.github.io/rockstadt2026clash/';
 const FILE_NAME = 'rockstadt-2026-picks.png';
 
-const COLORS = {
+export const COLORS = {
   bgTop: '#1d1a3d',
   bgBottom: '#0b0a18',
   panel: '#1a1736',
@@ -26,7 +26,7 @@ function selectedSlots(): SetSlot[] {
     .filter((s): s is SetSlot => Boolean(s));
 }
 
-interface ShareResult {
+export interface ShareResult {
   /** 'shared' via the native sheet, 'downloaded' as a fallback, or 'empty'. */
   outcome: 'shared' | 'downloaded' | 'empty';
 }
@@ -37,15 +37,24 @@ interface ShareResult {
  */
 export async function shareSelection(): Promise<ShareResult> {
   if (selection.size() === 0) return { outcome: 'empty' };
-
   const blob = await renderSelectionPng();
-  const file = new File([blob], FILE_NAME, { type: 'image/png' });
-
-  const shareData: ShareData = {
-    files: [file],
+  return sharePngBlob(blob, FILE_NAME, {
     title: `My ${FESTIVAL.name} 2026 picks`,
     text: `My picks for ${FESTIVAL.name} 2026 — ${SHARE_URL}`,
-  };
+  });
+}
+
+/**
+ * Offer a rendered PNG via the native share sheet, falling back to a file
+ * download. Shared by the picks image and the Rewind recap.
+ */
+export async function sharePngBlob(
+  blob: Blob,
+  fileName: string,
+  meta: { title: string; text: string },
+): Promise<ShareResult> {
+  const file = new File([blob], fileName, { type: 'image/png' });
+  const shareData: ShareData = { files: [file], ...meta };
 
   const nav = navigator as Navigator & {
     canShare?: (data?: ShareData) => boolean;
@@ -64,7 +73,7 @@ export async function shareSelection(): Promise<ShareResult> {
     }
   }
 
-  downloadBlob(blob, FILE_NAME);
+  downloadBlob(blob, fileName);
   return { outcome: 'downloaded' };
 }
 
@@ -279,7 +288,7 @@ function drawPickRow(
   ctx.textAlign = 'left';
 }
 
-function drawPill(
+export function drawPill(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
@@ -304,7 +313,7 @@ function drawPill(
   return x + w;
 }
 
-function truncate(ctx: CanvasRenderingContext2D, text: string, maxW: number): string {
+export function truncate(ctx: CanvasRenderingContext2D, text: string, maxW: number): string {
   if (ctx.measureText(text).width <= maxW) return text;
   let s = text;
   while (s.length > 1 && ctx.measureText(s + '…').width > maxW) {
@@ -313,7 +322,7 @@ function truncate(ctx: CanvasRenderingContext2D, text: string, maxW: number): st
   return s + '…';
 }
 
-function roundRect(
+export function roundRect(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,

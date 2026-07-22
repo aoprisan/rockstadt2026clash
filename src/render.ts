@@ -2,7 +2,6 @@ import { DAYS, FESTIVAL, DATA_VERSION } from './data';
 import type { FestivalDay, SetSlot } from './types';
 import {
   buildSlots,
-  clashingIds,
   findClashes,
   findTightTransitions,
   tightIds,
@@ -13,6 +12,17 @@ import {
   ALL_SLOTS,
 } from './schedule';
 import { openPlanner } from './planner';
+import {
+  applyResolutions,
+  bestSplit,
+  clearDuel,
+  consolation,
+  duelDecision,
+  duelOdds,
+  resolveDuel,
+  subscribeDuels,
+  unresolvedCount,
+} from './duel';
 import { openCrew, friendsForSlot, subscribeCrew, initials } from './crew';
 import {
   selection,
@@ -36,6 +46,12 @@ import {
   startForecastAutoRefresh,
 } from './weather';
 import { exportCalendar, clearCalendar, hasExported } from './calendar';
+import {
+  openJournal,
+  rating as journalRating,
+  subscribeJournal,
+  unratedCount,
+} from './journal';
 import * as notify from './notify';
 
 // Vertical scale of the timeline. Sized so even the shortest sets (45 min) are
@@ -110,10 +126,23 @@ export function mount(root: HTMLElement): void {
     renderContent(main);
     renderLiveBar();
     refreshChrome();
+    updateJournalDot(); // picking a set that already played can light the dot
   });
 
   // Friend overlays ride on the timeline; repaint when the crew changes.
   subscribeCrew(() => renderContent(main));
+
+  // Duel calls reshape the clash summary and the header badge.
+  subscribeDuels(() => {
+    renderContent(main);
+    refreshChrome();
+  });
+
+  // Ratings show on the timeline, and the journal button's dot tracks them.
+  subscribeJournal(() => {
+    renderContent(main);
+    updateJournalDot();
+  });
 
   // Per-set weather icons need the hourly forecast; load it in the background
   // and re-render the timeline once it arrives (from cache, then network).
@@ -127,6 +156,7 @@ export function mount(root: HTMLElement): void {
   renderLiveBar();
   renderContent(main);
   refreshChrome();
+  updateJournalDot();
 
   // The clock ticks every second; the "now" line and "Now / Next" bar creep
   // forward on their own while the app sits open all evening.
@@ -134,6 +164,7 @@ export function mount(root: HTMLElement): void {
   window.setInterval(() => {
     positionNowLine();
     renderLiveBar();
+    updateJournalDot(); // sets finish while the app sits open
   }, 30_000);
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
@@ -430,7 +461,16 @@ function renderShareBar(): HTMLElement {
   weather.addEventListener('click', () => openWeather());
   bar.appendChild(weather);
 
-  const shareApp = el('button', 'btn-ghost btn-share-app', '▦ Share app');
+  const journal = el('button', 'btn-ghost btn-journal', '🤘 Journal');
+  journal.id = 'journal-btn';
+  journal.setAttribute(
+    'aria-label',
+    'Open your festival journal: rate the sets you saw and share your Rewind',
+  );
+  journal.addEventListener('click', () => openJournal());
+  bar.appendChild(journal);
+
+  const shareApp = el('button', 'btn-ghost btn-share-app', '▦ App');
   shareApp.setAttribute('aria-label', 'Share this app with a QR code and link');
   shareApp.addEventListener('click', () => openShareApp());
   bar.appendChild(shareApp);
@@ -492,6 +532,13 @@ async function handleCalendar(mode: 'add' | 'remove'): Promise<void> {
   }
 }
 
+/** Light the journal button when seen sets are still waiting on a 🤘 verdict. */
+function updateJournalDot(): void {
+  const btn = document.getElementById('journal-btn');
+  if (!btn) return;
+  btn.classList.toggle('has-dot', unratedCount(Date.now()) > 0);
+}
+
 function refreshChrome(): void {
   document.querySelectorAll<HTMLButtonElement>('.day-tab').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.day === activeDayId);
@@ -506,18 +553,36 @@ function refreshChrome(): void {
   const stats = document.getElementById('header-stats');
   if (stats) {
     const picks = selection.size();
-    const clashCount = findClashes(selectedSlots()).length;
+    const clashes = findClashes(selectedSlots());
+    const clashCount = clashes.length;
+    const unsettled = unresolvedCount(clashes);
     stats.innerHTML = '';
     const pickBadge = el('div', 'stat');
     pickBadge.appendChild(el('span', 'stat-num', String(picks)));
     pickBadge.appendChild(el('span', 'stat-label', picks === 1 ? 'pick' : 'picks'));
     stats.appendChild(pickBadge);
 
-    const clashBadge = el('div', clashCount ? 'stat stat-clash' : 'stat');
-    clashBadge.appendChild(el('span', 'stat-num', String(clashCount)));
-    clashBadge.appendChild(
-      el('span', 'stat-label', clashCount === 1 ? 'clash' : 'clashes'),
+    // Settled clashes are decisions, not problems — the badge only turns red
+    // for the ones still waiting on a duel call.
+    const clashBadge = el(
+      'div',
+      unsettled ? 'stat stat-clash' : clashCount ? 'stat stat-settled' : 'stat',
     );
+    if (unsettled) {
+      clashBadge.appendChild(el('span', 'stat-num', String(unsettled)));
+      clashBadge.appendChild(
+        el('span', 'stat-label', unsettled === 1 ? 'clash to settle' : 'clashes to settle'),
+      );
+    } else {
+      clashBadge.appendChild(el('span', 'stat-num', String(clashCount)));
+      clashBadge.appendChild(
+        el(
+          'span',
+          'stat-label',
+          clashCount === 0 ? 'clashes' : clashCount === 1 ? 'clash settled' : 'clashes settled',
+        ),
+      );
+    }
     stats.appendChild(clashBadge);
   }
 }
@@ -528,13 +593,21 @@ function renderContent(main: HTMLElement): void {
   const slots = buildSlots(day);
 
   const selected = selectedSlots();
-  const clashing = clashingIds(selected);
+  // A settled clash is a decision, not a problem — only unresolved ones stay
+  // red on the timeline. Benched losers and split sets get their own marks.
+  const clashing = new Set<string>();
+  for (const c of findClashes(selected)) {
+    if (duelDecision(c.a.id, c.b.id)) continue;
+    clashing.add(c.a.id);
+    clashing.add(c.b.id);
+  }
+  const duelMarks = applyResolutions(selected);
   const tight = tightIds(selected);
 
   // The clash / tight-crossing summary now lives in the collapsible controls
   // panel rather than above the timeline.
   renderClashSummaryHost(day);
-  main.appendChild(renderTimeline(slots, clashing, tight, day.date));
+  main.appendChild(renderTimeline(slots, clashing, tight, day.date, duelMarks));
   const stats = renderStats();
   if (stats) main.appendChild(stats);
 }
@@ -588,33 +661,131 @@ function renderClashSummary(day: FestivalDay): HTMLElement {
     return panel;
   }
 
-  panel.classList.add('warn');
+  const open = dayClashes.filter((c) => !duelDecision(c.a.id, c.b.id)).length;
+  panel.classList.add(open ? 'warn' : 'settled');
   const head = el('div', 'clash-head');
-  head.appendChild(el('span', 'clash-icon', '⚠'));
+  head.appendChild(el('span', 'clash-icon', open ? '⚔' : '✓'));
   head.appendChild(
     el(
       'p',
       'clash-title',
-      `${dayClashes.length} clash${dayClashes.length > 1 ? 'es' : ''} in your picks today`,
+      open
+        ? `${open} clash duel${open > 1 ? 's' : ''} to settle today`
+        : `All ${dayClashes.length} clash${dayClashes.length > 1 ? 'es' : ''} settled — the planner follows your calls`,
     ),
   );
   panel.appendChild(head);
 
   const list = el('ul', 'clash-list');
-  for (const c of dayClashes) {
-    const li = el('li', 'clash-item');
-    const a = clashBandLink(c.a);
-    const b = clashBandLink(c.b);
-    li.appendChild(a);
-    li.appendChild(el('span', 'clash-vs', 'vs'));
-    li.appendChild(b);
-    li.appendChild(el('span', 'clash-overlap', `${fmtDuration(c.minutes)} overlap`));
-    list.appendChild(li);
-  }
+  for (const c of dayClashes) list.appendChild(renderDuelCard(c.a, c.b, c.minutes));
   panel.appendChild(list);
   const tight = renderTightBlock(dayTight);
   if (tight) panel.appendChild(tight);
   return panel;
+}
+
+/**
+ * One clash as an interactive duel: a head-to-head taste read, a computed
+ * split itinerary, and buttons to settle it. Decisions persist and feed the
+ * smart planner; "Undo" reopens the duel.
+ */
+function renderDuelCard(a: SetSlot, b: SetSlot, overlapMin: number): HTMLElement {
+  const li = el('li', 'clash-item duel-card');
+
+  const top = el('div', 'duel-top');
+  top.appendChild(clashBandLink(a));
+  top.appendChild(el('span', 'clash-vs', 'vs'));
+  top.appendChild(clashBandLink(b));
+  top.appendChild(el('span', 'clash-overlap', `${fmtDuration(overlapMin)} overlap`));
+  li.appendChild(top);
+
+  const split = bestSplit(a, b);
+  // A stored split that no longer computes (set times changed underneath it)
+  // silently reopens as an unresolved duel rather than showing stale advice.
+  let decision = duelDecision(a.id, b.id);
+  if (decision?.kind === 'split' && !split) decision = null;
+
+  if (decision) {
+    const row = el('div', 'duel-resolved');
+    if (decision.kind === 'split' && split) {
+      row.appendChild(
+        el(
+          'span',
+          'duel-resolved-text',
+          `✂ Your split: ${split.first.band} till ${minutesToLabel(split.leaveAt)}, walk ~${split.walk}m, then ${split.second.band} — ${fmtDuration(split.firstMinutes)} + ${fmtDuration(split.secondMinutes)} of music`,
+        ),
+      );
+    } else if (decision.kind === 'keep') {
+      const winner = decision.winner === a.id ? a : b;
+      const loser = decision.winner === a.id ? b : a;
+      const crumbs = consolation(winner, loser);
+      const extra = crumbs
+        ? crumbs.kind === 'tail'
+          ? ` · you can still catch ${loser.band}’s last ${crumbs.minutes}m`
+          : ` · you can still catch ${loser.band}’s first ${crumbs.minutes}m`
+        : '';
+      row.appendChild(
+        el('span', 'duel-resolved-text', `✓ You’re seeing ${winner.band}${extra}`),
+      );
+    }
+    const undo = el('button', 'duel-undo', 'Undo');
+    undo.type = 'button';
+    undo.setAttribute('aria-label', `Reopen the ${a.band} vs ${b.band} clash`);
+    undo.addEventListener('click', () => clearDuel(a.id, b.id));
+    row.appendChild(undo);
+    li.appendChild(row);
+    return li;
+  }
+
+  // Taste head-to-head: how each side matches the rest of your picks.
+  const odds = duelOdds(a, b);
+  if (odds.aPct != null) {
+    const meter = el('div', 'duel-odds');
+    meter.title = 'How each band matches the genres of everything else you picked';
+    const left = el('span', 'duel-odds-label', `${odds.aPct}%`);
+    left.style.setProperty('--c', a.stage.color);
+    const right = el('span', 'duel-odds-label', `${100 - odds.aPct}%`);
+    right.style.setProperty('--c', b.stage.color);
+    const bar = el('div', 'duel-odds-bar');
+    const fill = el('div', 'duel-odds-fill');
+    fill.style.width = `${odds.aPct}%`;
+    fill.style.setProperty('--c', a.stage.color);
+    bar.style.setProperty('--c', b.stage.color);
+    bar.appendChild(fill);
+    meter.appendChild(left);
+    meter.appendChild(bar);
+    meter.appendChild(right);
+    meter.appendChild(el('span', 'duel-odds-tag', 'taste match'));
+    li.appendChild(meter);
+  }
+
+  const actions = el('div', 'duel-actions');
+  const keepBtn = (winner: SetSlot, loser: SetSlot): HTMLButtonElement => {
+    const btn = el('button', 'duel-btn');
+    btn.type = 'button';
+    btn.style.setProperty('--c', winner.stage.color);
+    btn.textContent = `See ${winner.band}`;
+    const crumbs = consolation(winner, loser);
+    if (crumbs) {
+      btn.title = `You’d still catch the ${crumbs.kind === 'tail' ? 'last' : 'first'} ${crumbs.minutes}m of ${loser.band}`;
+    }
+    btn.addEventListener('click', () =>
+      resolveDuel(a.id, b.id, { kind: 'keep', winner: winner.id }),
+    );
+    return btn;
+  };
+  actions.appendChild(keepBtn(a, b));
+  actions.appendChild(keepBtn(b, a));
+  if (split) {
+    const btn = el('button', 'duel-btn duel-btn-split');
+    btn.type = 'button';
+    btn.textContent = `✂ Split ${fmtDuration(split.firstMinutes)} + ${fmtDuration(split.secondMinutes)}`;
+    btn.title = `${split.first.band} till ${minutesToLabel(split.leaveAt)}, ~${split.walk}m walk, then ${split.second.band}`;
+    btn.addEventListener('click', () => resolveDuel(a.id, b.id, { kind: 'split' }));
+    actions.appendChild(btn);
+  }
+  li.appendChild(actions);
+  return li;
 }
 
 /**
@@ -668,6 +839,7 @@ function renderTimeline(
   clashing: Set<string>,
   tight: Set<string>,
   dayDate: string,
+  duelMarks: ReturnType<typeof applyResolutions>,
 ): HTMLElement {
   const visible = onlyPicks ? slots.filter((s) => selection.has(s.id)) : slots;
 
@@ -730,7 +902,7 @@ function renderTimeline(
     col.style.setProperty('--stage', stageColor(stageKey));
     const colSlots = visible.filter((s) => s.stage.id === stageKey);
     for (const slot of colSlots) {
-      col.appendChild(renderSlot(slot, top, clashing, tight, dayDate));
+      col.appendChild(renderSlot(slot, top, clashing, tight, dayDate, duelMarks));
     }
     cols.appendChild(col);
   }
@@ -756,6 +928,7 @@ function renderSlot(
   clashing: Set<string>,
   tight: Set<string>,
   dayDate: string,
+  duelMarks: ReturnType<typeof applyResolutions>,
 ): HTMLElement {
   const y = (slot.start - top) * PX_PER_MIN;
   const h = (slot.end - slot.start) * PX_PER_MIN;
@@ -769,11 +942,14 @@ function renderSlot(
   const starred = picked && selection.isStarred(slot.id);
   const isClash = picked && clashing.has(slot.id);
   const isTight = picked && !isClash && tight.has(slot.id);
+  const benchedBy = picked ? duelMarks.droppedByCall.get(slot.id) : undefined;
+  const isSplit = picked && duelMarks.partial.has(slot.id);
   const friends = friendsForSlot(slot.id);
   if (picked) node.classList.add('picked');
   if (starred) node.classList.add('starred');
   if (isClash) node.classList.add('clashing');
   if (isTight) node.classList.add('tight');
+  if (benchedBy) node.classList.add('benched');
 
   node.setAttribute(
     'aria-label',
@@ -781,6 +957,8 @@ function renderSlot(
       slot.genre ? `, ${slot.genre}` : ''
     }${picked ? ', selected' : ''}${starred ? ', must-see' : ''}${
       isClash ? ', clashes with another pick' : ''
+    }${benchedBy ? `, benched — you chose ${benchedBy.band} in the clash duel` : ''}${
+      isSplit ? ', part of a clash-duel split' : ''
     }${isTight ? ', tight walk from your previous pick' : ''}${
       friends.length ? `, friends going: ${friends.map((f) => f.name).join(', ')}` : ''
     }`,
@@ -841,9 +1019,22 @@ function renderSlot(
   }
   node.appendChild(timeRow);
 
+  const horns = picked ? journalRating(slot.id) : 0;
   if (isClash) node.appendChild(el('span', 'set-flag', '⚠'));
-  else if (isTight) node.appendChild(el('span', 'set-flag walk', '🚶'));
-  else if (starred) node.appendChild(el('span', 'set-flag star', '★'));
+  else if (benchedBy) {
+    const flag = el('span', 'set-flag duel', '⏸');
+    flag.title = `Benched — you chose ${benchedBy.band} in the clash duel`;
+    node.appendChild(flag);
+  } else if (isSplit) {
+    const flag = el('span', 'set-flag duel', '✂');
+    flag.title = 'Part of your clash-duel split';
+    node.appendChild(flag);
+  } else if (isTight) node.appendChild(el('span', 'set-flag walk', '🚶'));
+  else if (horns > 0) {
+    const flag = el('span', 'set-flag rate', `🤘${horns}`);
+    flag.title = `You rated this ${horns}/5`;
+    node.appendChild(flag);
+  } else if (starred) node.appendChild(el('span', 'set-flag star', '★'));
   else if (picked) node.appendChild(el('span', 'set-flag check', '✓'));
 
   // Friend overlays: who else from your crew is at this set.
