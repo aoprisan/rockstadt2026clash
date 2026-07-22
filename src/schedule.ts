@@ -112,6 +112,15 @@ export function clashingIds(slots: SetSlot[]): Set<string> {
   return ids;
 }
 
+/** Format noon-anchored timeline minutes back into a "HH:MM" wall-clock label. */
+export function minutesToLabel(min: number): string {
+  let total = min + 12 * 60; // undo noon anchor
+  total = ((total % 1440) + 1440) % 1440;
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
 export function fmtDuration(min: number): string {
   const h = Math.floor(min / 60);
   const m = min % 60;

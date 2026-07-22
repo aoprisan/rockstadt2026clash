@@ -1,4 +1,5 @@
 const KEY = 'ref2026.selection.v1';
+const STAR_KEY = 'ref2026.stars.v1';
 const DAY_KEY = 'ref2026.activeDay.v1';
 const SEEN_VERSION_KEY = 'ref2026.dataVersion.v1';
 
@@ -6,10 +7,14 @@ type Listener = () => void;
 
 class SelectionStore {
   private selected: Set<string>;
+  /** "Must-see" tier: a subset of `selected` the user has starred. */
+  private starred: Set<string>;
   private listeners = new Set<Listener>();
 
   constructor() {
-    this.selected = new Set(load());
+    this.selected = new Set(load(KEY));
+    // Stars only make sense on picked sets; prune any strays from old data.
+    this.starred = new Set(load(STAR_KEY).filter((id) => this.selected.has(id)));
   }
 
   has(id: string): boolean {
@@ -24,20 +29,42 @@ class SelectionStore {
     return this.selected.size;
   }
 
+  isStarred(id: string): boolean {
+    return this.starred.has(id);
+  }
+
+  starredIds(): string[] {
+    return [...this.starred];
+  }
+
   toggle(id: string): void {
-    if (this.selected.has(id)) this.selected.delete(id);
-    else this.selected.add(id);
+    if (this.selected.has(id)) {
+      this.selected.delete(id);
+      this.starred.delete(id); // un-picking clears the star too
+    } else {
+      this.selected.add(id);
+    }
+    this.persist();
+  }
+
+  /** Flip the "must-see" star on a picked set (no-op on unpicked ids). */
+  toggleStar(id: string): void {
+    if (!this.selected.has(id)) return;
+    if (this.starred.has(id)) this.starred.delete(id);
+    else this.starred.add(id);
     this.persist();
   }
 
   clear(): void {
     this.selected.clear();
+    this.starred.clear();
     this.persist();
   }
 
   /** Replace the entire selection at once (used when importing a shared link). */
   replaceAll(ids: string[]): void {
     this.selected = new Set(ids);
+    this.starred = new Set([...this.starred].filter((id) => this.selected.has(id)));
     this.persist();
   }
 
@@ -49,6 +76,7 @@ class SelectionStore {
   private persist(): void {
     try {
       localStorage.setItem(KEY, JSON.stringify([...this.selected]));
+      localStorage.setItem(STAR_KEY, JSON.stringify([...this.starred]));
     } catch {
       /* ignore quota / private mode */
     }
@@ -56,9 +84,9 @@ class SelectionStore {
   }
 }
 
-function load(): string[] {
+function load(key: string): string[] {
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(key);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed.filter((x) => typeof x === 'string') : [];

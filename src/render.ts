@@ -9,8 +9,11 @@ import {
   fmtDuration,
   getSlot,
   festivalInstant,
+  minutesToLabel,
   ALL_SLOTS,
 } from './schedule';
+import { openPlanner } from './planner';
+import { openCrew, friendsForSlot, subscribeCrew, initials } from './crew';
 import {
   selection,
   loadActiveDay,
@@ -108,6 +111,9 @@ export function mount(root: HTMLElement): void {
     renderLiveBar();
     refreshChrome();
   });
+
+  // Friend overlays ride on the timeline; repaint when the crew changes.
+  subscribeCrew(() => renderContent(main));
 
   // Per-set weather icons need the hourly forecast; load it in the background
   // and re-render the timeline once it arrives (from cache, then network).
@@ -217,6 +223,7 @@ function renderToolbar(): HTMLElement {
   if (notifyCtl) panel.appendChild(notifyCtl);
   panel.appendChild(renderCalendarMenu());
   panel.appendChild(renderPicksLinkButton());
+  panel.appendChild(renderCrewButton());
 
   // Right group: options disclosure + clear all.
   const actions = el('div', 'tb-group tb-actions');
@@ -407,6 +414,11 @@ function renderNotifyControl(): HTMLElement | null {
 /** Sticky bottom bar holding the primary share actions. */
 function renderShareBar(): HTMLElement {
   const bar = el('div', 'share-bar');
+
+  const plan = el('button', 'btn-ghost btn-plan', '🧭 Plan');
+  plan.setAttribute('aria-label', 'Open the smart day planner');
+  plan.addEventListener('click', () => openPlanner(activeDayId));
+  bar.appendChild(plan);
 
   const map = el('button', 'btn-ghost btn-map', '🗺 Map');
   map.setAttribute('aria-label', 'Open the festival site map');
@@ -754,9 +766,12 @@ function renderSlot(
   node.style.setProperty('--stage', slot.stage.color);
 
   const picked = selection.has(slot.id);
+  const starred = picked && selection.isStarred(slot.id);
   const isClash = picked && clashing.has(slot.id);
   const isTight = picked && !isClash && tight.has(slot.id);
+  const friends = friendsForSlot(slot.id);
   if (picked) node.classList.add('picked');
+  if (starred) node.classList.add('starred');
   if (isClash) node.classList.add('clashing');
   if (isTight) node.classList.add('tight');
 
@@ -764,8 +779,10 @@ function renderSlot(
     'aria-label',
     `${slot.band}, ${slot.startLabel} to ${slot.endLabel}, ${slot.stage.name}${
       slot.genre ? `, ${slot.genre}` : ''
-    }${picked ? ', selected' : ''}${isClash ? ', clashes with another pick' : ''}${
-      isTight ? ', tight walk from your previous pick' : ''
+    }${picked ? ', selected' : ''}${starred ? ', must-see' : ''}${
+      isClash ? ', clashes with another pick' : ''
+    }${isTight ? ', tight walk from your previous pick' : ''}${
+      friends.length ? `, friends going: ${friends.map((f) => f.name).join(', ')}` : ''
     }`,
   );
   node.setAttribute('aria-pressed', String(picked));
@@ -826,9 +843,42 @@ function renderSlot(
 
   if (isClash) node.appendChild(el('span', 'set-flag', '⚠'));
   else if (isTight) node.appendChild(el('span', 'set-flag walk', '🚶'));
+  else if (starred) node.appendChild(el('span', 'set-flag star', '★'));
   else if (picked) node.appendChild(el('span', 'set-flag check', '✓'));
 
+  // Friend overlays: who else from your crew is at this set.
+  if (friends.length > 0) {
+    const crewRow = el('span', 'set-crew');
+    for (const f of friends.slice(0, 3)) {
+      const chip = el('span', 'set-crew-chip', initials(f.name));
+      chip.style.setProperty('--c', f.color);
+      chip.title = `${f.name} is going`;
+      crewRow.appendChild(chip);
+    }
+    if (friends.length > 3) {
+      crewRow.appendChild(el('span', 'set-crew-more', `+${friends.length - 3}`));
+    }
+    node.appendChild(crewRow);
+  }
+
   const actions = el('div', 'set-actions');
+
+  // "Must-see" star: only on picked sets; protected by the day planner.
+  if (picked) {
+    const star = el('button', 'set-pill set-star');
+    star.appendChild(el('span', 'set-pill-icon', starred ? '★' : '☆'));
+    if (starred) star.classList.add('is-on');
+    star.setAttribute(
+      'aria-label',
+      starred ? `Unmark ${slot.band} as must-see` : `Mark ${slot.band} as must-see`,
+    );
+    star.title = starred ? 'Must-see — the planner keeps this' : 'Mark as must-see';
+    star.addEventListener('click', (e) => {
+      e.stopPropagation();
+      selection.toggleStar(slot.id);
+    });
+    actions.appendChild(star);
+  }
 
   const listen = el('a', 'set-pill set-listen');
   listen.appendChild(el('span', 'set-pill-icon', '▶'));
@@ -1212,6 +1262,14 @@ function cssEscape(s: string): string {
   return anyCss?.escape ? anyCss.escape(s) : s.replace(/["\\]/g, '\\$&');
 }
 
+/* ---------- crew mode ---------- */
+function renderCrewButton(): HTMLElement {
+  const btn = el('button', 'btn-ghost btn-crew', '👥 Crew');
+  btn.title = 'Overlay your friends’ picks: shared sets and meet-up windows';
+  btn.addEventListener('click', () => openCrew());
+  return btn;
+}
+
 /* ---------- share picks as a link ---------- */
 function renderPicksLinkButton(): HTMLElement {
   const btn = el('button', 'btn-ghost btn-picks-link', '🔗 Share picks link');
@@ -1245,14 +1303,6 @@ function renderPicksLinkButton(): HTMLElement {
     }
   });
   return btn;
-}
-
-function minutesToLabel(min: number): string {
-  let total = min + 12 * 60; // undo noon anchor
-  total = ((total % 1440) + 1440) % 1440;
-  const h = Math.floor(total / 60);
-  const m = total % 60;
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
 function stageColor(key: 'rugina' | 'brasov' | 'calmuc'): string {

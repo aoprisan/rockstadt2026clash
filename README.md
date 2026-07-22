@@ -16,6 +16,23 @@ flags **clashes** — sets you've picked that overlap in time.
 - **Tight-crossing warnings** — even when two picks don't overlap, back-to-back
   sets on *different* stages with too small a gap to walk across are flagged in
   amber (a rung below a true clash), with the gap and estimated walk time.
+- **Must-see stars** — picked sets can be starred (★) as a second, higher tier.
+  Stars glow gold on the timeline and are the planner's protected class.
+- **Smart day planner** — one tap turns your picks, clashes and all, into the
+  best walkable running order for each day: a weighted-interval-scheduling
+  optimiser keeps every ★ must-see it can, then maximises minutes of music,
+  charging real stage-to-stage walking time (arriving after the downbeat costs
+  you the minutes you'd miss). It lays the day out as a run of show — walks,
+  breathers, late-arrival warnings — lists exactly which sets it dropped and
+  which chosen sets beat them, and fills your free gaps with **taste-matched
+  suggestions**: unpicked sets that fit the window, ranked by a tiny TF-IDF
+  genre-affinity model built from everything you've picked (one tap adds them).
+- **Crew mode** — paste the picks links your friends share and their plans
+  overlay yours, entirely client-side: initials badges on every set a friend is
+  going to, a per-day list of the sets you'll be together for, and computed
+  **meet-up windows** — the stretches when every single member of the crew is
+  free at the same time. Re-pasting a fresh link under the same name updates a
+  friend; no accounts, no backend, nothing leaves the device.
 - **Now / Next live bar** — a self-updating strip that counts down to the gates
   before the festival, then during it shows what's on now among your picks and
   what you're about to miss, with a live countdown.
