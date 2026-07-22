@@ -1721,3 +1721,98 @@ body {
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
+
+/* ---------- in-app reminder toasts ---------- */
+/* The visible counterpart to the native OS notification: a stack of dismissible
+   cards pinned to the top of the viewport, tuned to the gold-on-black sheet. */
+.toast-host {
+  position: fixed;
+  top: calc(10px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  width: min(420px, calc(100vw - 24px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  border-radius: var(--radius);
+  border: 1px solid color-mix(in srgb, var(--c, var(--accent)) 45%, var(--line-strong));
+  border-left: 3px solid var(--c, var(--accent));
+  background: linear-gradient(160deg, var(--panel-2), var(--panel));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  text-align: left;
+  animation: toast-in 0.22s ease-out;
+}
+.toast.leaving {
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.toast-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--c, var(--accent));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--c, var(--accent)) 30%, transparent);
+}
+.toast-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.toast-title {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.2;
+}
+.toast-meta {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.toast-close {
+  flex: none;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.toast-close:hover {
+  color: var(--text);
+  background: var(--panel-2);
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+  .toast.leaving {
+    transition: none;
+  }
+}

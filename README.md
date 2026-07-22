@@ -35,7 +35,10 @@ flags **clashes** — sets you've picked that overlap in time.
 - **"Only my picks" filter** to see just your personal line-up.
 - **Set reminders** — opt in to a notification a chosen number of minutes
   (5/10/15/30) before each picked set starts. Scheduled on-device with no
-  backend, so the in-app notification fires while the app is open.
+  backend. Each reminder fires on two channels while the app is open: a
+  **native** OS notification (which reaches you in the background) and a
+  visible **in-app toast** (for when the app is focused and the browser hides
+  its own banner). Tap the toast to jump straight to that set on the timeline.
 - **Add to calendar** — export your picks as an `.ics` file with an alarm
   before every set. Your phone's native calendar then reminds you reliably
   **even when the app is fully closed** — offline and cross-platform, still no
