@@ -12,7 +12,7 @@ export const FESTIVAL = {
  * re-timed). Returning visitors whose last-seen stamp differs get a one-time
  * "running order updated" banner so stale plans don't go unnoticed.
  */
-export const DATA_VERSION = '2026-07-21';
+export const DATA_VERSION = '2026-07-23';
 
 export const STAGES: Record<StageId, Stage> = {
   rugina: { id: 'rugina', name: 'Adrian Rugină Stage', color: '#7ec524' },
@@ -29,6 +29,7 @@ export const DAYS: FestivalDay[] = [
     sets: {
       rugina: [
         { band: 'Reverse The Moment', start: '15:50', end: '16:35' },
+        { band: 'Groza', start: '17:30', end: '18:15' },
         { band: 'Heaven Shall Burn', start: '19:15', end: '20:15' },
         { band: 'Sabaton', start: '21:30', end: '23:15' },
       ],
@@ -39,8 +40,7 @@ export const DAYS: FestivalDay[] = [
         { band: 'Marilyn Manson', start: '23:20', end: '00:50' },
       ],
       calmuc: [
-        { band: 'Necrotted', start: '15:10', end: '15:55' },
-        { band: 'Groza', start: '16:25', end: '17:10' },
+        { band: 'Necrotted', start: '16:25', end: '17:10' },
         { band: 'Hackneyed', start: '17:40', end: '18:30' },
         { band: 'Vended', start: '19:00', end: '20:00' },
         { band: 'Majestica', start: '20:30', end: '21:30' },
@@ -74,7 +74,7 @@ export const DAYS: FestivalDay[] = [
         { band: 'Tribulation', start: '17:40', end: '18:30' },
         { band: 'Cryptopsy', start: '19:00', end: '20:00' },
         { band: 'Non Est Deus', start: '20:30', end: '21:30' },
-        { band: 'Immolation', start: '22:00', end: '23:00' },
+        { band: 'Vader', start: '22:00', end: '23:00' },
         { band: 'Deafheaven', start: '23:30', end: '00:30' },
         { band: 'Grave', start: '01:00', end: '02:00' },
       ],
@@ -86,21 +86,21 @@ export const DAYS: FestivalDay[] = [
     date: '2026-07-29',
     sets: {
       rugina: [
-        { band: 'Allt', start: '15:50', end: '16:35' },
+        { band: 'Annisokay', start: '15:50', end: '16:35' },
         { band: 'Municipal Waste', start: '17:35', end: '18:25' },
         { band: 'In Extremo', start: '19:25', end: '20:25' },
         { band: 'Arch Enemy', start: '21:35', end: '22:35' },
         { band: 'Lamb of God', start: '23:50', end: '01:10' },
       ],
       brasov: [
-        { band: 'Underwaves', start: '15:00', end: '15:45' },
-        { band: 'Vader', start: '16:40', end: '17:30' },
+        { band: 'Allt', start: '15:00', end: '15:45' },
+        { band: 'Immolation', start: '16:40', end: '17:30' },
         { band: 'Thy Art Is Murder', start: '18:30', end: '19:20' },
         { band: 'Accept', start: '20:30', end: '21:30' },
         { band: 'Slaughter To Prevail', start: '22:40', end: '23:45' },
       ],
       calmuc: [
-        { band: 'Annisokay', start: '16:25', end: '17:10' },
+        { band: 'Underwaves', start: '16:25', end: '17:10' },
         { band: 'Novembers Doom', start: '17:40', end: '18:30' },
         { band: 'Animals As Leaders', start: '19:00', end: '20:00' },
         { band: 'The Ghost Inside', start: '20:30', end: '21:30' },
@@ -130,9 +130,8 @@ export const DAYS: FestivalDay[] = [
         { band: 'Amorphis', start: '23:10', end: '00:10' },
       ],
       calmuc: [
-        { band: 'Machukha', start: '14:50', end: '15:30' },
-        { band: 'Slow Crush', start: '16:00', end: '16:45' },
-        { band: 'Conservative Military Image', start: '17:15', end: '18:00' },
+        { band: 'Machukha', start: '16:00', end: '16:45' },
+        { band: 'Slow Crush', start: '17:15', end: '18:00' },
         { band: 'Monolord', start: '18:30', end: '19:20' },
         { band: 'Bucovina', start: '19:50', end: '20:40' },
         { band: 'Malevolence', start: '21:10', end: '22:10' },
