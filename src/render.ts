@@ -9,8 +9,10 @@ import {
   getSlot,
   festivalInstant,
   minutesToLabel,
+  toMinutes,
   ALL_SLOTS,
 } from './schedule';
+import * as buses from './buses';
 import { openPlanner } from './planner';
 import {
   applyResolutions,
@@ -69,6 +71,8 @@ let controlsOpen = false;
 // The "Your festival" stats panel at the foot of the schedule is likewise
 // collapsed by default.
 let statsOpen = false;
+// The bus panel under the timeline follows the same fold-away convention.
+let busesOpen = false;
 let bannerDismissed = false;
 
 const el = <K extends keyof HTMLElementTagNameMap>(
@@ -651,6 +655,7 @@ function renderContent(main: HTMLElement): void {
   // panel rather than above the timeline.
   renderClashSummaryHost(day);
   main.appendChild(renderTimeline(slots, clashing, tight, day.date, duelMarks));
+  main.appendChild(renderBuses(day));
   const stats = renderStats();
   if (stats) main.appendChild(stats);
 }
@@ -875,6 +880,196 @@ function tightBandLabel(slot: SetSlot): HTMLElement {
   const span = el('span', 'tight-band', slot.band);
   span.style.setProperty('--c', slot.stage.color);
   return span;
+}
+
+/* ---------- buses to and from Brașov ---------- */
+
+function busChip(run: buses.BusRun, mark?: 'go' | 'last'): HTMLElement {
+  const chip = el('span', 'bus-chip');
+  if (mark) chip.classList.add(`is-${mark}`);
+  chip.appendChild(el('span', 'bus-chip-time', run.time));
+  chip.appendChild(el('span', 'bus-chip-line', run.line));
+  return chip;
+}
+
+/**
+ * The Ghimbav site is a bus ride out of Brașov, and every night of this
+ * running order ends after the last scheduled bus — so the panel is really
+ * about one question: does the way you've planned the day still get you home?
+ */
+function renderBuses(day: FestivalDay): HTMLElement {
+  const type = buses.dayTypeFor(day.date);
+  const morningType = buses.dayTypeFor(buses.nextDate(day.date));
+  const picks = selectedSlots()
+    .filter((s) => s.dayId === day.id)
+    .sort((a, b) => a.start - b.start);
+  const first = picks[0];
+  const last = picks.reduce<SetSlot | undefined>(
+    (acc, s) => (!acc || s.end > acc.end ? s : acc),
+    undefined,
+  );
+  const home = buses.lastHome(type);
+
+  const panel = el('section', 'bus-panel');
+
+  const body = el('div', 'bus-body');
+  body.id = 'bus-body';
+  body.hidden = !busesOpen;
+
+  const toggle = el('button', 'bus-toggle');
+  toggle.setAttribute('aria-controls', 'bus-body');
+  const paint = (): void => {
+    toggle.setAttribute('aria-expanded', String(busesOpen));
+    toggle.innerHTML = '';
+    toggle.appendChild(el('span', 'bus-title', 'Buses to Brașov'));
+    const meta = el('span', 'bus-head-meta');
+    if (home) meta.appendChild(el('span', 'bus-head-last', `last ${home.time}`));
+    meta.appendChild(el('span', 'bus-toggle-chevron', busesOpen ? '▲' : '▼'));
+    toggle.appendChild(meta);
+  };
+  paint();
+  toggle.addEventListener('click', () => {
+    busesOpen = !busesOpen;
+    body.hidden = !busesOpen;
+    paint();
+  });
+  panel.appendChild(toggle);
+
+  // --- out to the site ---
+  const outHead = el('div', 'bus-leg-head');
+  outHead.appendChild(el('span', 'bus-leg-title', 'To the site'));
+  outHead.appendChild(
+    el(
+      'span',
+      'bus-leg-route',
+      `${buses.STOP_TOWN} → ${buses.STOP_SITE} · ~13 min + ${buses.WALK_MIN} min walk`,
+    ),
+  );
+  body.appendChild(outHead);
+
+  const board = first ? buses.boardBy(type, first.start) : undefined;
+  if (first && board) {
+    const note = el('p', 'bus-note');
+    note.appendChild(document.createTextNode('Catch the '));
+    note.appendChild(el('strong', 'bus-strong', `${board.time} (${board.line})`));
+    note.appendChild(
+      document.createTextNode(
+        ` — at the gate ~${minutesToLabel(board.atGate)}, ${first.start - board.atGate} min before ${first.band}.`,
+      ),
+    );
+    body.appendChild(note);
+  } else if (first) {
+    body.appendChild(
+      el('p', 'bus-note', `Nothing arrives before ${first.band} at ${first.startLabel}.`),
+    );
+  }
+
+  const outRow = el('div', 'bus-row');
+  const outbound = buses
+    .toSite(type)
+    // From gates-open onward, and stopping at midnight — in the noon-anchored
+    // scale the next morning's 05:00 sorts after 22:50, and nobody is heading
+    // to the site then.
+    .filter((r) => r.at >= toMinutes('13:00') && r.at < toMinutes('00:00'));
+  for (const run of outbound) {
+    const chip = busChip(run, board && run.time === board.time ? 'go' : undefined);
+    // The organisers supplement both lines across the arrival window, so these
+    // departures run more often than the printed timetable shows.
+    if (buses.inExtraWindow(run)) chip.classList.add('is-extra');
+    outRow.appendChild(chip);
+  }
+  body.appendChild(outRow);
+  body.appendChild(
+    el(
+      'p',
+      'bus-fine',
+      `Underlined departures fall in the ${buses.EXTRAS.inbound.from}–${buses.EXTRAS.inbound.to} window, where both lines are supplemented — expect more than the printed times.`,
+    ),
+  );
+
+  // --- back into town ---
+  const backHead = el('div', 'bus-leg-head');
+  backHead.appendChild(el('span', 'bus-leg-title', 'Back to town'));
+  backHead.appendChild(
+    el('span', 'bus-leg-route', `Ghimbav → ${buses.STOP_TOWN} · 220 from Făgărașului, 210 from Gentianei`),
+  );
+  body.appendChild(backHead);
+
+  if (last && home) {
+    const ride = buses.toTown(type).find((r) => r.at >= last.end + buses.WALK_MIN && r.at < toMinutes('00:00'));
+    if (ride) {
+      const note = el('p', 'bus-note');
+      note.appendChild(
+        document.createTextNode(`${last.band} ends ${last.endLabel} — the `),
+      );
+      note.appendChild(el('strong', 'bus-strong', `${ride.time} (${ride.line})`));
+      note.appendChild(document.createTextNode(` from ${ride.stop} gets you back.`));
+      body.appendChild(note);
+    } else {
+      const over = last.end - home.at;
+      const note = el('p', 'bus-note is-late');
+      note.appendChild(
+        document.createTextNode(`${last.band} ends ${last.endLabel} — that is `),
+      );
+      note.appendChild(el('strong', 'bus-strong', fmtDuration(over)));
+      note.appendChild(
+        document.createTextNode(
+          ` after the last scheduled bus (${home.time}). The night service below is your ride.`,
+        ),
+      );
+      body.appendChild(note);
+    }
+  }
+
+  const backRow = el('div', 'bus-row');
+  for (const run of buses.toTown(type).filter((r) => r.at >= toMinutes('18:00') && r.at < toMinutes('00:00'))) {
+    backRow.appendChild(busChip(run, home && run.time === home.time ? 'last' : undefined));
+  }
+  body.appendChild(backRow);
+
+  // Not a footnote: with every night of this running order finishing after the
+  // last scheduled bus, this is the service most people actually go home on.
+  const night = el('div', 'bus-night');
+  const nightHead = el('div', 'bus-night-head');
+  nightHead.appendChild(el('span', 'bus-night-label', 'Night buses'));
+  nightHead.appendChild(
+    el('span', 'bus-night-window', `${buses.EXTRAS.night.from}–${buses.EXTRAS.night.to}`),
+  );
+  night.appendChild(nightHead);
+  night.appendChild(
+    el(
+      'p',
+      'bus-night-note',
+      `Extra returns from the festival area to ${buses.EXTRAS.night.dest} — laid on for the festival, so exact departures are posted on site rather than in the RATBV timetable. Note they run to Livada Poștei, not back to ${buses.STOP_TOWN}.`,
+    ),
+  );
+  body.appendChild(night);
+
+  const morning = buses.firstHomeNextDay(morningType);
+  if (morning) {
+    body.appendChild(
+      el(
+        'p',
+        'bus-fine',
+        `Otherwise the first bus of the morning is the ${morning.time} (${morning.line}) from ${morning.stop}.`,
+      ),
+    );
+  }
+
+  const src = el('p', 'bus-fine');
+  src.appendChild(document.createTextNode('Timetables: '));
+  buses.SOURCES.forEach((s, i) => {
+    if (i) src.appendChild(document.createTextNode(' · '));
+    const a = el('a', 'bus-src', s.label);
+    a.href = s.url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    src.appendChild(a);
+  });
+  body.appendChild(src);
+
+  panel.appendChild(body);
+  return panel;
 }
 
 function renderTimeline(

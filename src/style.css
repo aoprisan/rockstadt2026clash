@@ -1706,6 +1706,204 @@ body {
   }
 }
 
+/* ---------- buses ---------- */
+
+.bus-panel {
+  margin: 20px 16px 8px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-top: 2px solid var(--muted);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+.bus-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.bus-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--bone);
+}
+.bus-head-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+/* The one number worth reading with the panel shut. */
+.bus-head-last {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.bus-toggle-chevron {
+  color: var(--accent);
+  font-size: 0.7rem;
+}
+.bus-body {
+  margin-top: 12px;
+  animation: options-in 0.15s ease;
+}
+.bus-body[hidden] {
+  display: none;
+}
+.bus-leg-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.bus-leg-head:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+.bus-leg-title {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--bone);
+}
+.bus-leg-route {
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+.bus-note {
+  margin: 8px 0 0;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: var(--text);
+}
+/* Amber, not ember: missing the last bus sits on the same caution rung as a
+   tight stage-to-stage crossing, a step below a true clash. */
+.bus-note.is-late {
+  color: var(--amber);
+}
+.bus-strong {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.bus-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 10px;
+}
+.bus-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 3px 6px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--panel-2);
+}
+.bus-chip-time {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--bone);
+  font-variant-numeric: tabular-nums;
+}
+.bus-chip-line {
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.bus-chip.is-go {
+  border-color: var(--ok);
+}
+.bus-chip.is-go .bus-chip-time {
+  color: var(--ok);
+}
+.bus-chip.is-last {
+  border-color: var(--amber);
+}
+.bus-chip.is-last .bus-chip-time {
+  color: var(--amber);
+}
+/* Departures inside the supplemented 13:00–17:00 arrival window. */
+.bus-chip.is-extra {
+  border-bottom-color: var(--accent);
+  border-bottom-width: 2px;
+  padding-bottom: 2px;
+}
+/* A marked chip keeps its own ink all the way round. */
+.bus-chip.is-extra.is-go {
+  border-bottom-color: var(--ok);
+}
+.bus-chip.is-extra.is-last {
+  border-bottom-color: var(--amber);
+}
+.bus-fine {
+  margin: 8px 0 0;
+  font-size: 0.66rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+/* The night service carries the whole return leg once the timetable runs out,
+   so it gets a block of its own rather than a line of fine print. */
+.bus-night {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--accent-2);
+  border-left-width: 3px;
+  border-radius: 3px;
+  background: var(--panel-2);
+}
+.bus-night-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.bus-night-label {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+}
+.bus-night-window {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.bus-night-note {
+  margin: 6px 0 0;
+  font-size: 0.68rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.bus-src {
+  color: var(--accent);
+}
+
 /* Dialog titles share the poster voice. */
 .share-app-title,
 .site-map-title,
