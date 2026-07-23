@@ -22,7 +22,7 @@ function pickedSlots(): SetSlot[] {
 }
 
 /** Total length of the union of a day's intervals (double-booked time once). */
-function unionMinutes(slots: SetSlot[]): number {
+export function unionMinutes(slots: SetSlot[]): number {
   const intervals = slots.map((s) => [s.start, s.end] as const).sort((a, b) => a[0] - b[0]);
   let total = 0;
   let curStart = -Infinity;

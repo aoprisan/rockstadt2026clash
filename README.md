@@ -18,6 +18,17 @@ flags **clashes** — sets you've picked that overlap in time.
   amber (a rung below a true clash), with the gap and estimated walk time.
 - **Must-see stars** — picked sets can be starred (★) as a second, higher tier.
   Stars glow gold on the timeline and are the planner's protected class.
+- **Clash duels** — clashes aren't just flagged, they can be *settled*. Every
+  clash becomes an interactive duel card: a taste head-to-head (how each band
+  matches the genres of everything else you picked), one-tap **See A / See B**
+  calls, and a computed **✂ split** — "watch 24m of A, walk ~6m, catch all of
+  B" — built from real stage-to-stage walking times, only offered when a
+  meaningful chunk of both sets is reachable. Keeping one side still tells you
+  how much of the other you could catch around it. Decisions persist and flow
+  everywhere: the header badge counts only *unsettled* clashes, settled sets
+  stop glowing red on the timeline (a benched loser dims with ⏸, split sets
+  carry ✂), and the day planner obeys your calls — benched sets leave the
+  route, split sets are truncated to your exact windows. Undo any time.
 - **Smart day planner** — one tap turns your picks, clashes and all, into the
   best walkable running order for each day: a weighted-interval-scheduling
   optimiser keeps every ★ must-see it can, then maximises minutes of music,
@@ -33,6 +44,15 @@ flags **clashes** — sets you've picked that overlap in time.
   **meet-up windows** — the stretches when every single member of the crew is
   free at the same time. Re-pasting a fresh link under the same name updates a
   friend; no accounts, no backend, nothing leaves the device.
+- **Festival journal & "My Rockstadt Rewind"** — once a picked set has played,
+  rate it 🤘 to 🤘🤘🤘🤘🤘 in the journal, mark the ones you didn't make it to,
+  and keep a one-line memory ("wall of death", "guest song"). Ratings show on
+  the timeline, and a dot on the Journal button nudges you while sets are
+  still unrated. One tap then renders **My Rockstadt Rewind** — a shareable
+  Wrapped-style PNG of the festival you actually had: sets seen, hours of live
+  music, your top-rated podium, the genres that defined your week, your stage
+  split and your best quote — straight to the native share sheet. Works
+  mid-festival as a running tally; everything stays on-device.
 - **Now / Next live bar** — a self-updating strip that counts down to the gates
   before the festival, then during it shows what's on now among your picks and
   what you're about to miss, with a live countdown.

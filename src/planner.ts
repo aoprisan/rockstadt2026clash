@@ -1,7 +1,6 @@
 import { DAYS } from './data';
 import type { FestivalDay, SetSlot } from './types';
 import {
-  ALL_SLOTS,
   buildSlots,
   fmtDuration,
   getSlot,
@@ -10,6 +9,8 @@ import {
   walkMinutes,
 } from './schedule';
 import { selection } from './store';
+import { tasteProfile, scoreAgainst, type Suggestion } from './taste';
+import { applyResolutions, subscribeDuels } from './duel';
 
 /**
  * The smart day planner: turns a pile of picks — clashes and all — into the
@@ -32,6 +33,8 @@ export interface PlannedSet {
   kind: 'set';
   slot: SetSlot;
   starred: boolean;
+  /** True when a clash-duel split truncated this set (labels show the window). */
+  partial?: boolean;
   /** Transition from the previously chosen set (absent on the day's opener). */
   walk?: number;
   gap?: number;
@@ -50,18 +53,12 @@ export interface PlannedGap {
 
 export type PlanEntry = PlannedSet | PlannedGap;
 
-export interface Suggestion {
-  slot: SetSlot;
-  /** Taste-affinity score (0 = no genre signal). */
-  score: number;
-  /** The genre words that matched your picks, best first. */
-  matched: string[];
-}
-
 export interface DroppedPick {
   slot: SetSlot;
   /** The chosen sets this pick overlaps — the reason it was dropped. */
   conflictsWith: SetSlot[];
+  /** True when the user themselves benched this set in a clash duel. */
+  byCall?: boolean;
 }
 
 export interface DayPlan {
@@ -81,62 +78,6 @@ function pickedSlots(): SetSlot[] {
     .filter((s): s is SetSlot => Boolean(s));
 }
 
-/* ---------- taste profile (tiny TF-IDF over genre labels) ---------- */
-
-function genreTokens(genre: string | undefined): string[] {
-  if (!genre) return [];
-  return [...new Set(genre.toLowerCase().split(/[\s/·,+-]+/).filter((t) => t.length > 2))];
-}
-
-/**
- * Inverse document frequency of each genre word across the whole bill, so
- * near-universal words ("metal") count for far less than distinctive ones
- * ("doom", "grind", "synth").
- */
-const GENRE_IDF: Map<string, number> = (() => {
-  const bandGenres = new Map<string, string | undefined>();
-  for (const s of ALL_SLOTS) if (!bandGenres.has(s.band)) bandGenres.set(s.band, s.genre);
-  const df = new Map<string, number>();
-  let docs = 0;
-  for (const genre of bandGenres.values()) {
-    const tokens = genreTokens(genre);
-    if (tokens.length === 0) continue;
-    docs++;
-    for (const t of tokens) df.set(t, (df.get(t) ?? 0) + 1);
-  }
-  const idf = new Map<string, number>();
-  for (const [t, n] of df) idf.set(t, Math.log(1 + docs / n));
-  return idf;
-})();
-
-/** Sum of idf weights per genre word across the user's picked bands. */
-export function tasteProfile(picks: SetSlot[]): Map<string, number> {
-  const profile = new Map<string, number>();
-  const seen = new Set<string>();
-  for (const s of picks) {
-    if (seen.has(s.band)) continue;
-    seen.add(s.band);
-    for (const t of genreTokens(s.genre)) {
-      profile.set(t, (profile.get(t) ?? 0) + (GENRE_IDF.get(t) ?? 0));
-    }
-  }
-  return profile;
-}
-
-function scoreAgainst(profile: Map<string, number>, slot: SetSlot): Suggestion {
-  const contributions: Array<[string, number]> = [];
-  for (const t of genreTokens(slot.genre)) {
-    const w = profile.get(t);
-    if (w) contributions.push([t, w]);
-  }
-  contributions.sort((a, b) => b[1] - a[1]);
-  return {
-    slot,
-    score: contributions.reduce((sum, [, w]) => sum + w, 0),
-    matched: contributions.map(([t]) => t),
-  };
-}
-
 /* ---------- the optimiser ---------- */
 
 function transitionLateBy(a: SetSlot, b: SetSlot): number {
@@ -148,9 +89,14 @@ function transitionLateBy(a: SetSlot, b: SetSlot): number {
 export function planDay(dayId: string): DayPlan | null {
   const day = DAYS.find((d) => d.id === dayId);
   if (!day) return null;
-  const picks = pickedSlots()
-    .filter((s) => s.dayId === dayId)
-    .sort((x, y) => x.start - y.start || x.end - y.end);
+  const rawPicks = pickedSlots().filter((s) => s.dayId === dayId);
+  if (rawPicks.length === 0) return null;
+
+  // The user's clash-duel calls come first: benched losers leave the pool and
+  // split pairs are truncated to their windows. The optimiser then arbitrates
+  // whatever clashes remain unresolved.
+  const { slots: adjusted, droppedByCall, partial } = applyResolutions(rawPicks);
+  const picks = adjusted.sort((x, y) => x.start - y.start || x.end - y.end);
   if (picks.length === 0) return null;
 
   const weight = (s: SetSlot): number =>
@@ -184,6 +130,10 @@ export function planDay(dayId: string): DayPlan | null {
       slot: s,
       conflictsWith: chain.filter((c) => overlaps(c, s)),
     }));
+  for (const [loserId, winner] of droppedByCall) {
+    const slot = rawPicks.find((s) => s.id === loserId);
+    if (slot) dropped.push({ slot, conflictsWith: [winner], byCall: true });
+  }
 
   // Free-gap suggestions come from the day's unpicked sets, scored against the
   // taste profile of everything the user picked across the whole festival.
@@ -199,6 +149,7 @@ export function planDay(dayId: string): DayPlan | null {
       slot,
       starred: selection.isStarred(slot.id),
     };
+    if (partial.has(slot.id)) entry.partial = true;
     if (i > 0) {
       const prev = chain[i - 1];
       const gap = slot.start - prev.end;
@@ -292,6 +243,10 @@ function buildDialog(): HTMLDialogElement {
   d.addEventListener('click', (e) => {
     if (e.target === d) d.close();
   });
+  // Duel calls made from the clash panel reshape the plan; live-refresh if open.
+  subscribeDuels(() => {
+    if (d.open) repaint();
+  });
   document.body.appendChild(d);
   return d;
 }
@@ -356,7 +311,9 @@ function repaint(): void {
         el(
           'span',
           'planner-dropped-why',
-          `${d.slot.startLabel}–${d.slot.endLabel} · loses to ${vs || 'a better chain'}`,
+          d.byCall
+            ? `${d.slot.startLabel}–${d.slot.endLabel} · your duel call — you chose ${vs}`
+            : `${d.slot.startLabel}–${d.slot.endLabel} · loses to ${vs || 'a better chain'}`,
         ),
       );
       ul.appendChild(li);
@@ -406,6 +363,11 @@ function renderSetRow(entry: PlannedSet, afterGap: boolean): HTMLElement {
   band.style.setProperty('--c', entry.slot.stage.color);
   row.appendChild(band);
   if (entry.starred) row.appendChild(el('span', 'planner-star', '★'));
+  if (entry.partial) {
+    const chip = el('span', 'planner-split-chip', '✂ split');
+    chip.title = 'Truncated by your clash-duel split — the times show your window';
+    row.appendChild(chip);
+  }
   row.appendChild(el('span', 'planner-stage', entry.slot.stage.name.replace(' Stage', '')));
   li.appendChild(row);
   return li;
