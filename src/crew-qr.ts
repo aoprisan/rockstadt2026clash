@@ -1,0 +1,564 @@
+import qrcode from 'qrcode-generator';
+import { FESTIVAL } from './data';
+import { decodePicks, encodeIds, encodePicks } from './picks-link';
+import { addFriend, crewList, type Friend } from './crew';
+import { selection } from './store';
+
+/**
+ * Crew beam: sync festival plans phone-to-phone with **zero network** — point a
+ * camera at a QR code. A beam carries your name, your picks, *and every crew
+ * plan you already collected*, so plans spread through a crew gossip-style:
+ * scan one friend and you inherit everyone they've met. Server-based crew apps
+ * go dark when the site's signal does; this needs nothing but eye contact.
+ *
+ * The payload is a `#c=…` token (base64url JSON of name + picks bitmask tokens)
+ * so the exact same beam also works as a normal link over any messenger.
+ */
+
+const NAME_KEY = 'ref2026.beamName.v1';
+const BEAM_VERSION = '1';
+
+/* ---------- my name ---------- */
+
+export function myName(): string {
+  try {
+    return localStorage.getItem(NAME_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+export function saveMyName(name: string): void {
+  try {
+    localStorage.setItem(NAME_KEY, name.trim());
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+/* ---------- encode / decode ---------- */
+
+interface BeamMember {
+  name: string;
+  ids: string[];
+}
+
+export interface BeamPayload {
+  /** The person beaming (becomes / updates a friend on the receiving side). */
+  me: BeamMember;
+  /** The crew plans they carry (relayed friends-of-friends). */
+  crew: BeamMember[];
+}
+
+/** Wire form: names + compact picks tokens, not raw id lists. */
+interface BeamWire {
+  v: number;
+  me: { n: string; p: string };
+  fr: { n: string; p: string }[];
+}
+
+function toBase64Url(bytes: Uint8Array): string {
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function fromBase64Url(s: string): Uint8Array | null {
+  try {
+    const b64 = s.replace(/-/g, '+').replace(/_/g, '/');
+    const bin = atob(b64);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  } catch {
+    return null;
+  }
+}
+
+/** The `#c=…` token for this device: my name + picks + every known crew plan. */
+export function encodeBeam(): string {
+  const wire: BeamWire = {
+    v: 1,
+    me: { n: myName(), p: encodePicks() },
+    fr: crewList().map((f) => ({ n: f.name, p: encodeIds(f.ids) })),
+  };
+  const bytes = new TextEncoder().encode(JSON.stringify(wire));
+  return BEAM_VERSION + toBase64Url(bytes);
+}
+
+export function buildBeamUrl(): string {
+  return `${location.origin}${location.pathname}#c=${encodeBeam()}`;
+}
+
+export function decodeBeam(token: string): BeamPayload | null {
+  if (!token || token[0] !== BEAM_VERSION) return null;
+  const bytes = fromBase64Url(token.slice(1));
+  if (!bytes) return null;
+  try {
+    const wire = JSON.parse(new TextDecoder().decode(bytes)) as unknown;
+    if (!wire || typeof wire !== 'object') return null;
+    const w = wire as BeamWire;
+    const member = (m: { n?: unknown; p?: unknown }): BeamMember | null => {
+      if (typeof m?.n !== 'string' || typeof m?.p !== 'string') return null;
+      return { name: m.n.trim().slice(0, 24), ids: decodePicks(m.p) };
+    };
+    const me = member(w.me);
+    if (!me) return null;
+    const crew = Array.isArray(w.fr)
+      ? w.fr.map(member).filter((m): m is BeamMember => m !== null)
+      : [];
+    return { me, crew };
+  } catch {
+    return null;
+  }
+}
+
+/* ---------- merging a received beam ---------- */
+
+export interface BeamResult {
+  /** Names newly added to the crew. */
+  added: string[];
+  /** Names that were already in the crew and got their plan refreshed. */
+  updated: string[];
+  /** Members skipped because they look like *you* (your plan stays yours). */
+  skippedSelf: number;
+}
+
+/**
+ * Fold a beam into the local crew: the sender becomes (or refreshes) a friend,
+ * and every crew plan they relay is merged too. Entries whose name matches
+ * yours are skipped — you already have the canonical copy of your own plan.
+ */
+export function applyBeam(beam: BeamPayload): BeamResult {
+  const mine = myName().toLowerCase();
+  const before = new Set(crewList().map((f) => f.name.toLowerCase()));
+  const result: BeamResult = { added: [], updated: [], skippedSelf: 0 };
+
+  const merge = (m: BeamMember): void => {
+    if (!m.name || m.ids.length === 0) return;
+    if (mine && m.name.toLowerCase() === mine) {
+      result.skippedSelf++;
+      return;
+    }
+    const existed = before.has(m.name.toLowerCase());
+    addFriend(m.name, m.ids);
+    (existed ? result.updated : result.added).push(m.name);
+    before.add(m.name.toLowerCase());
+  };
+
+  merge(beam.me);
+  for (const m of beam.crew) merge(m);
+  return result;
+}
+
+/**
+ * Whatever the user pasted or scanned — a beam URL, a plain picks link, or a
+ * bare token — classified and decoded. Plain picks links still need a name
+ * before they can join the crew, so they surface as their own kind.
+ */
+export type ScanParse =
+  | { kind: 'beam'; beam: BeamPayload }
+  | { kind: 'picks'; ids: string[] }
+  | { kind: 'invalid' };
+
+export function parseBeamInput(input: string): ScanParse {
+  const trimmed = input.trim();
+  if (!trimmed) return { kind: 'invalid' };
+
+  const beamMatch = trimmed.match(/[#&]c=([^&\s]+)/);
+  const beamToken = beamMatch ? decodeURIComponent(beamMatch[1]) : trimmed;
+  const beam = decodeBeam(beamToken);
+  if (beam) return { kind: 'beam', beam };
+
+  const picksMatch = trimmed.match(/[#&]p=([^&\s]+)/);
+  const picksToken = picksMatch ? decodeURIComponent(picksMatch[1]) : trimmed;
+  const ids = decodePicks(picksToken);
+  if (ids.length > 0) return { kind: 'picks', ids };
+
+  return { kind: 'invalid' };
+}
+
+/**
+ * On load, import a crew beam from a `#c=…` link if present (the same beam the
+ * QR carries, arriving over a messenger instead). Adds friends — never touches
+ * your own picks — then strips the hash. Returns true if anything was merged.
+ */
+export function importBeamFromUrl(): boolean {
+  const match = location.hash.match(/[#&]c=([^&]+)/);
+  if (!match) return false;
+  const clearHash = () =>
+    history.replaceState(null, '', location.pathname + location.search);
+
+  const beam = decodeBeam(decodeURIComponent(match[1]));
+  if (!beam || !beam.me.name) {
+    clearHash();
+    return false;
+  }
+
+  const extra = beam.crew.filter((m) => m.ids.length > 0).length;
+  const what =
+    `Add ${beam.me.name}${extra > 0 ? ` (+${extra} crew plan${extra === 1 ? '' : 's'} they carry)` : ''} to your crew?`;
+  if (!confirm(what)) {
+    clearHash();
+    return false;
+  }
+
+  applyBeam(beam);
+  clearHash();
+  return true;
+}
+
+/* ---------- barcode detection (not yet in TS's DOM lib) ---------- */
+
+interface DetectedBarcode {
+  rawValue: string;
+}
+interface BarcodeDetectorLike {
+  detect(source: CanvasImageSource): Promise<DetectedBarcode[]>;
+}
+type BarcodeDetectorCtor = new (options?: { formats?: string[] }) => BarcodeDetectorLike;
+
+function barcodeDetector(): BarcodeDetectorLike | null {
+  const ctor = (window as Window & { BarcodeDetector?: BarcodeDetectorCtor })
+    .BarcodeDetector;
+  if (!ctor) return null;
+  try {
+    return new ctor({ formats: ['qr_code'] });
+  } catch {
+    return null;
+  }
+}
+
+/* ---------- dialog ---------- */
+
+let dialog: HTMLDialogElement | null = null;
+let stream: MediaStream | null = null;
+let scanTimer: number | null = null;
+/** Repaint the crew dialog behind us after a successful merge. */
+let onMerged: (() => void) | null = null;
+
+const el = <K extends keyof HTMLElementTagNameMap>(
+  tag: K,
+  cls?: string,
+  text?: string,
+): HTMLElementTagNameMap[K] => {
+  const node = document.createElement(tag);
+  if (cls) node.className = cls;
+  if (text != null) node.textContent = text;
+  return node;
+};
+
+export function openBeam(mode: 'show' | 'scan', merged?: () => void): void {
+  onMerged = merged ?? null;
+  if (!dialog) dialog = buildDialog();
+  repaint(mode);
+  if (typeof dialog.showModal === 'function') dialog.showModal();
+  else dialog.setAttribute('open', '');
+}
+
+function stopCamera(): void {
+  if (scanTimer != null) {
+    window.clearInterval(scanTimer);
+    scanTimer = null;
+  }
+  if (stream) {
+    for (const track of stream.getTracks()) track.stop();
+    stream = null;
+  }
+}
+
+function buildDialog(): HTMLDialogElement {
+  const d = document.createElement('dialog');
+  d.className = 'beam';
+  d.setAttribute('aria-label', 'Crew beam — sync plans by QR');
+
+  const card = el('div', 'beam-card');
+
+  const head = el('div', 'beam-head');
+  head.appendChild(el('h2', 'beam-title', '📡 Crew beam'));
+  const close = el('button', 'beam-close', '✕');
+  close.type = 'button';
+  close.setAttribute('aria-label', 'Close crew beam');
+  close.addEventListener('click', () => d.close());
+  head.appendChild(close);
+  card.appendChild(head);
+
+  const body = el('div', 'beam-body');
+  body.id = 'beam-body';
+  card.appendChild(body);
+
+  d.appendChild(card);
+  d.addEventListener('click', (e) => {
+    if (e.target === d) d.close();
+  });
+  d.addEventListener('close', stopCamera);
+  document.body.appendChild(d);
+  return d;
+}
+
+function repaint(mode: 'show' | 'scan'): void {
+  const body = dialog?.querySelector('#beam-body');
+  if (!body) return;
+  stopCamera();
+  body.innerHTML = '';
+
+  body.appendChild(
+    el(
+      'p',
+      'beam-intro',
+      'Sync plans with no signal at all: one phone shows a QR, the other scans it. A beam carries your picks and every crew plan you’ve already collected, so one scan can sync a whole crew.',
+    ),
+  );
+
+  // Your beam name — the label your plan travels under on friends' phones.
+  const nameRow = el('div', 'beam-name-row');
+  const nameLabel = el('label', 'beam-name-label', 'Your name');
+  const nameInput = el('input', 'crew-input beam-name') as HTMLInputElement;
+  nameInput.placeholder = 'e.g. Alex';
+  nameInput.maxLength = 24;
+  nameInput.value = myName();
+  nameInput.setAttribute('aria-label', 'Your name, shown on friends’ timelines');
+  nameLabel.appendChild(nameInput);
+  nameRow.appendChild(nameLabel);
+  body.appendChild(nameRow);
+
+  // Mode switch.
+  const tabs = el('div', 'beam-tabs');
+  const showTab = el('button', 'beam-tab', '▦ My QR');
+  showTab.type = 'button';
+  const scanTab = el('button', 'beam-tab', '📷 Scan');
+  scanTab.type = 'button';
+  (mode === 'show' ? showTab : scanTab).classList.add('active');
+  showTab.addEventListener('click', () => repaint('show'));
+  scanTab.addEventListener('click', () => repaint('scan'));
+  tabs.appendChild(showTab);
+  tabs.appendChild(scanTab);
+  body.appendChild(tabs);
+
+  const pane = el('div', 'beam-pane');
+  body.appendChild(pane);
+
+  if (mode === 'show') paintShow(pane, nameInput);
+  else paintScan(pane, nameInput);
+
+  nameInput.addEventListener('change', () => {
+    saveMyName(nameInput.value);
+    if (mode === 'show') repaint('show'); // the QR embeds the name — refresh it
+  });
+}
+
+/* ---------- "My QR" pane ---------- */
+
+function qrSvg(text: string): string {
+  const qr = qrcode(0, 'M');
+  qr.addData(text);
+  qr.make();
+  return qr.createSvgTag({ cellSize: 8, margin: 2, scalable: true });
+}
+
+function paintShow(pane: HTMLElement, nameInput: HTMLInputElement): void {
+  if (!myName()) {
+    pane.appendChild(
+      el('p', 'beam-nudge', 'Set your name above first — it’s the label your plan shows up under on your friends’ phones.'),
+    );
+    nameInput.focus();
+    return;
+  }
+  if (selection.size() === 0 && crewList().length === 0) {
+    pane.appendChild(
+      el('p', 'beam-nudge', 'Nothing to beam yet — pick some sets on the timeline first.'),
+    );
+    return;
+  }
+
+  const url = buildBeamUrl();
+  const qr = el('div', 'beam-qr');
+  qr.innerHTML = qrSvg(url);
+  pane.appendChild(qr);
+
+  const carried = crewList().length;
+  pane.appendChild(
+    el(
+      'p',
+      'beam-carries',
+      `Carries your ${selection.size()} pick${selection.size() === 1 ? '' : 's'}` +
+        (carried > 0
+          ? ` + ${carried} crew plan${carried === 1 ? '' : 's'} (${crewList()
+              .map((f: Friend) => f.name)
+              .join(', ')})`
+          : '') +
+        '. Friends scan it from Crew → 📡 Beam.',
+    ),
+  );
+
+  const actions = el('div', 'beam-actions');
+  const nav = navigator as Navigator & { share?: (data: ShareData) => Promise<void> };
+  if (typeof nav.share === 'function') {
+    const share = el('button', 'beam-btn primary', '⤴ Share beam link');
+    share.type = 'button';
+    share.addEventListener('click', async () => {
+      try {
+        await nav.share!({
+          title: `${FESTIVAL.name} 2026 crew beam`,
+          text: `My ${FESTIVAL.name} 2026 plan (+crew) — open to add me to yours:`,
+          url,
+        });
+      } catch {
+        /* dismissed */
+      }
+    });
+    actions.appendChild(share);
+  }
+  const copy = el('button', 'beam-btn', 'Copy beam link');
+  copy.type = 'button';
+  copy.addEventListener('click', async () => {
+    let ok = false;
+    try {
+      await navigator.clipboard.writeText(url);
+      ok = true;
+    } catch {
+      /* clipboard unavailable */
+    }
+    copy.textContent = ok ? 'Copied ✓' : 'Copy failed';
+    setTimeout(() => (copy.textContent = 'Copy beam link'), 1600);
+  });
+  actions.appendChild(copy);
+  pane.appendChild(actions);
+}
+
+/* ---------- "Scan" pane ---------- */
+
+function describeResult(r: BeamResult): string {
+  const bits: string[] = [];
+  if (r.added.length) bits.push(`added ${r.added.join(', ')}`);
+  if (r.updated.length) bits.push(`updated ${r.updated.join(', ')}`);
+  if (bits.length === 0) return 'Nothing new in that beam.';
+  return `🤘 Crew synced — ${bits.join(' · ')}.`;
+}
+
+function handlePayload(
+  text: string,
+  status: HTMLElement,
+  fallbackName: () => string,
+): boolean {
+  const parsed = parseBeamInput(text);
+  if (parsed.kind === 'invalid') {
+    status.textContent = 'That code isn’t a crew beam or picks link.';
+    status.classList.add('is-error');
+    return false;
+  }
+  status.classList.remove('is-error');
+  if (parsed.kind === 'beam') {
+    if (!parsed.beam.me.name && parsed.beam.crew.length === 0) {
+      status.textContent = 'That beam was empty.';
+      return false;
+    }
+    const result = applyBeam(parsed.beam);
+    status.textContent = describeResult(result);
+    onMerged?.();
+    return true;
+  }
+  // A plain picks link has no name riding along — ask for one.
+  const name = fallbackName();
+  if (!name) {
+    status.textContent =
+      'That’s a plain picks link — type the friend’s name below, then try again.';
+    return false;
+  }
+  addFriend(name, parsed.ids);
+  status.textContent = `🤘 Added ${name} (${parsed.ids.length} pick${parsed.ids.length === 1 ? '' : 's'}).`;
+  onMerged?.();
+  return true;
+}
+
+function paintScan(pane: HTMLElement, _nameInput: HTMLInputElement): void {
+  const status = el('p', 'beam-status');
+  status.setAttribute('role', 'status');
+
+  const detector = barcodeDetector();
+  const camHost = el('div', 'beam-cam-host');
+
+  // Friend-name field, needed only when scanning a plain #p= picks link.
+  const friendName = el('input', 'crew-input beam-friend-name') as HTMLInputElement;
+  friendName.placeholder = 'Friend’s name (for plain picks links)';
+  friendName.maxLength = 24;
+  friendName.setAttribute('aria-label', 'Friend’s name, used when adding a plain picks link');
+
+  if (detector && navigator.mediaDevices?.getUserMedia) {
+    const start = el('button', 'beam-btn primary beam-start', '📷 Start camera');
+    start.type = 'button';
+    start.addEventListener('click', async () => {
+      start.disabled = true;
+      status.textContent = 'Opening camera…';
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' },
+          audio: false,
+        });
+      } catch {
+        status.textContent =
+          'Camera unavailable or permission denied — paste their beam link below instead.';
+        status.classList.add('is-error');
+        start.disabled = false;
+        return;
+      }
+      const video = el('video', 'beam-video') as HTMLVideoElement;
+      video.setAttribute('playsinline', '');
+      video.muted = true;
+      video.srcObject = stream;
+      await video.play().catch(() => undefined);
+      camHost.innerHTML = '';
+      camHost.appendChild(video);
+      status.textContent = 'Point at a friend’s crew QR…';
+
+      scanTimer = window.setInterval(async () => {
+        if (!stream) return;
+        try {
+          const codes = await detector.detect(video);
+          const hit = codes.find((c) => c.rawValue);
+          if (hit && handlePayload(hit.rawValue, status, () => friendName.value.trim())) {
+            stopCamera();
+            camHost.innerHTML = '';
+            const again = el('button', 'beam-btn', '📷 Scan another');
+            again.type = 'button';
+            again.addEventListener('click', () => repaint('scan'));
+            camHost.appendChild(again);
+            if (navigator.vibrate) navigator.vibrate(80);
+          }
+        } catch {
+          /* a frame failed to decode — keep trying */
+        }
+      }, 350);
+    });
+    camHost.appendChild(start);
+  } else {
+    camHost.appendChild(
+      el(
+        'p',
+        'beam-nudge',
+        'This browser can’t scan QR codes directly — paste the beam link below instead (any messenger will carry it).',
+      ),
+    );
+  }
+
+  pane.appendChild(camHost);
+  pane.appendChild(status);
+
+  // Paste fallback — works everywhere, including iOS Safari without detector.
+  const form = el('form', 'beam-paste') as HTMLFormElement;
+  const paste = el('input', 'crew-input beam-paste-input') as HTMLInputElement;
+  paste.placeholder = '…or paste a beam / picks link';
+  paste.setAttribute('aria-label', 'Paste a crew beam or picks link');
+  const go = el('button', 'beam-btn', 'Add') as HTMLButtonElement;
+  go.type = 'submit';
+  form.appendChild(paste);
+  form.appendChild(friendName);
+  form.appendChild(go);
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (handlePayload(paste.value, status, () => friendName.value.trim())) {
+      paste.value = '';
+    }
+  });
+  pane.appendChild(form);
+}

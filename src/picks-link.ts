@@ -30,15 +30,20 @@ function fromBase64Url(s: string): Uint8Array | null {
   }
 }
 
-/** A `#p=…` token capturing the current selection. */
-export function encodePicks(): string {
+/** Encode any list of slot ids into a compact token (crew beams reuse this). */
+export function encodeIds(ids: string[]): string {
   const bytes = new Uint8Array(Math.ceil(ALL_SLOTS.length / 8));
-  for (const id of selection.ids()) {
+  for (const id of ids) {
     const idx = slotIndex.get(id);
     if (idx == null) continue;
     bytes[idx >> 3] |= 1 << (idx & 7);
   }
   return VERSION + toBase64Url(bytes);
+}
+
+/** A `#p=…` token capturing the current selection. */
+export function encodePicks(): string {
+  return encodeIds(selection.ids());
 }
 
 /** Decode a `#p=…` token back into slot ids (empty if malformed/mismatched). */

@@ -2,11 +2,14 @@ import './style.css';
 import { mount } from './render';
 import { init as initNotifications } from './notify';
 import { importPicksFromUrl } from './picks-link';
+import { importBeamFromUrl } from './crew-qr';
 import { registerSW } from 'virtual:pwa-register';
 
 // Import picks shared via a `#p=…` link before the first render so the app
-// opens straight onto the shared line-up.
+// opens straight onto the shared line-up. Crew beams (`#c=…`) arriving as
+// links merge into the crew the same way — without touching your own picks.
 importPicksFromUrl();
+importBeamFromUrl();
 
 const app = document.getElementById('app');
 if (app) {
