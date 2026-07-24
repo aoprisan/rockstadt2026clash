@@ -57,6 +57,8 @@ import {
   unratedCount,
 } from './journal';
 import * as notify from './notify';
+import { openStamina } from './stamina-panel';
+import { reserveTone, weekBattery } from './stamina';
 
 // Vertical scale of the timeline. Sized so even the shortest sets (45 min) are
 // tall enough to hold their full content — a three-line band name plus the
@@ -261,6 +263,7 @@ function renderToolbar(): HTMLElement {
   panel.appendChild(renderCalendarMenu());
   panel.appendChild(renderPicksLinkButton());
   panel.appendChild(renderCrewButton());
+  panel.appendChild(renderStaminaButton());
 
   // Right group: options disclosure + clear all.
   const actions = el('div', 'tb-group tb-actions');
@@ -649,6 +652,24 @@ function refreshChrome(): void {
       );
     }
     stats.appendChild(clashBadge);
+
+    // The week's battery: the lowest reading the stamina model projects across
+    // the five days. Tapping it opens the panel that explains the number.
+    const battery = weekBattery();
+    if (battery.hasPlan) {
+      const tone = reserveTone(battery.lowest);
+      const btn = el('button', `stat stat-battery is-${tone}`);
+      btn.type = 'button';
+      btn.setAttribute(
+        'aria-label',
+        `Stamina: your lowest projected reserve is ${battery.lowest} per cent. Open the stamina panel.`,
+      );
+      btn.title = 'Projected reserve at your lowest point — tap for the five-day read';
+      btn.appendChild(el('span', 'stat-num', `${battery.lowest}%`));
+      btn.appendChild(el('span', 'stat-label', 'at the low'));
+      btn.addEventListener('click', () => openStamina());
+      stats.appendChild(btn);
+    }
   }
 }
 
@@ -1737,6 +1758,14 @@ function renderCrewButton(): HTMLElement {
   const btn = el('button', 'btn-ghost btn-crew', '👥 Crew');
   btn.title = 'Overlay your friends’ picks: shared sets and meet-up windows';
   btn.addEventListener('click', () => openCrew());
+  return btn;
+}
+
+/* ---------- stamina ---------- */
+function renderStaminaButton(): HTMLElement {
+  const btn = el('button', 'btn-ghost btn-stamina', '🔋 Stamina');
+  btn.title = 'Five-day read on sleep, heat, walking and the last bus — and what to cut';
+  btn.addEventListener('click', () => openStamina());
   return btn;
 }
 

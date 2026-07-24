@@ -3360,3 +3360,550 @@ body {
   color: var(--muted);
   line-height: 1.5;
 }
+
+/* ---------- stamina: the five-day battery ---------- */
+/* Three badges no longer fit one line on a narrow phone: let them wrap under
+   the brand rather than pushing the third one off the screen. */
+.header-stats {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  row-gap: 6px;
+  /* The base rule pins these open (flex-shrink: 0); to wrap they have to be
+     allowed to give up width first. */
+  flex-shrink: 1;
+  min-width: 0;
+}
+.stat-battery {
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+  text-align: center;
+}
+.stat-battery.is-ok .stat-num {
+  color: var(--ok);
+}
+.stat-battery.is-warn {
+  border-color: var(--amber);
+}
+.stat-battery.is-warn .stat-num {
+  color: var(--amber);
+}
+.stat-battery.is-bad {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 18%, var(--panel));
+}
+.stat-battery.is-bad .stat-num {
+  color: var(--danger);
+}
+.stat-battery:active {
+  background: var(--line);
+}
+
+.stamina {
+  border: none;
+  background: transparent;
+  padding: 0;
+  width: calc(100% - 24px);
+  max-width: 560px;
+  max-height: calc(100dvh - 24px);
+  color: var(--text);
+}
+.stamina::backdrop {
+  background: rgba(8, 7, 20, 0.82);
+  backdrop-filter: blur(3px);
+}
+.stamina-card {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 24px);
+  padding: 12px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: linear-gradient(160deg, var(--panel-2), var(--panel));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+.stamina-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 4px 6px;
+}
+.stamina-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+.stamina-close {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.stamina-close:active {
+  background: var(--line);
+}
+.stamina-sub {
+  margin: 0 4px 10px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.stamina-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 4px 4px;
+  -webkit-overflow-scrolling: touch;
+}
+.stamina-empty {
+  margin: 12px 2px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.stamina-chart {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  padding: 8px 6px 6px;
+}
+.stamina-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.stamina-floor {
+  stroke: var(--amber);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+  opacity: 0.5;
+}
+.stamina-ceiling {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 2 4;
+  opacity: 0.6;
+}
+.stamina-drop {
+  stroke: var(--line-strong);
+  stroke-width: 7;
+  stroke-linecap: round;
+  opacity: 0.75;
+}
+.stamina-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.stamina-dot.is-ok {
+  fill: var(--ok);
+}
+.stamina-dot.is-warn {
+  fill: var(--amber);
+}
+.stamina-dot.is-bad {
+  fill: var(--danger);
+}
+.stamina-value {
+  fill: var(--text);
+  font-size: 9px;
+  font-weight: 800;
+  text-anchor: middle;
+}
+.stamina-xlabel {
+  fill: var(--muted);
+  font-size: 8px;
+  text-anchor: middle;
+  letter-spacing: 0.5px;
+}
+.stamina-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 4px 6px 2px;
+  font-size: 0.58rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.stamina-legend-item::before {
+  content: '';
+  display: inline-block;
+  width: 12px;
+  height: 0;
+  margin-right: 5px;
+  vertical-align: middle;
+  border-top: 2px solid currentColor;
+}
+.stamina-legend-item.is-line {
+  color: var(--accent);
+}
+.stamina-legend-item.is-ceiling::before,
+.stamina-legend-item.is-floor::before {
+  border-top-style: dashed;
+}
+.stamina-legend-item.is-floor {
+  color: var(--amber);
+}
+
+.stamina-verdict {
+  margin: 10px 2px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.stamina-verdict.is-warn strong {
+  color: var(--amber);
+}
+.stamina-verdict.is-bad strong {
+  color: var(--danger);
+}
+.stamina-verdict.is-ok strong {
+  color: var(--ok);
+}
+.stamina-verdict-more {
+  color: var(--muted);
+}
+
+.stamina-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+}
+.stamina-profile-label {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+}
+.stamina-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.stamina-chip {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-2);
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.stamina-chip.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--panel));
+}
+.stamina-stepper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+.stamina-step {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.stamina-step:active {
+  background: var(--line);
+}
+.stamina-step-value {
+  font-size: 0.8rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  min-width: 34px;
+  text-align: center;
+}
+
+.stamina-repair {
+  margin: 10px 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+}
+.stamina-fix {
+  width: 100%;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 16%, var(--panel));
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding: 10px;
+  cursor: pointer;
+}
+.stamina-fix:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.stamina-fix-hint,
+.stamina-fix-ok {
+  margin: 8px 2px 0;
+  font-size: 0.68rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.stamina-fix-head {
+  margin: 0 2px 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+.stamina-cuts {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.stamina-cut {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 8px;
+  border-left: 3px solid var(--line-strong);
+  background: var(--panel-2);
+  border-radius: 8px;
+}
+.stamina-cut-band {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--c, var(--text));
+}
+.stamina-cut-why {
+  font-size: 0.66rem;
+  color: var(--muted);
+}
+.stamina-fix-actions {
+  display: flex;
+  gap: 8px;
+}
+.stamina-apply {
+  flex: 1;
+  border: none;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #17150e;
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 10px;
+  cursor: pointer;
+}
+.stamina-dismiss {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.stamina-day {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+}
+.stamina-day-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.stamina-day-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.stamina-day-label {
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+.stamina-day-date {
+  font-size: 0.66rem;
+  color: var(--muted);
+}
+.stamina-badge {
+  font-size: 0.76rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+}
+.stamina-badge.is-ok {
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 50%, var(--line));
+}
+.stamina-badge.is-warn {
+  color: var(--amber);
+  border-color: color-mix(in srgb, var(--amber) 50%, var(--line));
+}
+.stamina-badge.is-bad {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 50%, var(--line));
+}
+.stamina-meter {
+  height: 5px;
+  margin: 8px 0;
+  border-radius: 999px;
+  background: var(--panel-2);
+  overflow: hidden;
+}
+.stamina-meter-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--ok);
+}
+.stamina-meter-fill.is-warn {
+  background: var(--amber);
+}
+.stamina-meter-fill.is-bad {
+  background: var(--danger);
+}
+.stamina-day-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.stamina-daychip {
+  font-size: 0.64rem;
+  font-weight: 600;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: var(--panel-2);
+}
+.stamina-actions {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.stamina-action {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border-left: 3px solid var(--line-strong);
+  background: var(--panel-2);
+}
+.stamina-action.is-critical {
+  border-left-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, var(--panel-2));
+}
+.stamina-action.is-warn {
+  border-left-color: var(--amber);
+}
+.stamina-action-head {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+}
+.stamina-action-icon {
+  font-size: 0.85rem;
+}
+.stamina-action-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.stamina-action-detail {
+  margin: 5px 0 0;
+  font-size: 0.7rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.stamina-action-btn {
+  margin-top: 8px;
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 8px;
+  text-align: left;
+  cursor: pointer;
+}
+.stamina-action-btn:active {
+  background: var(--line);
+}
+.stamina-note {
+  margin: 12px 2px 4px;
+  font-size: 0.64rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* Stamina strip inside the autopilot. */
+.ap-stamina {
+  margin-top: 10px;
+  padding: 9px 11px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--ok);
+  background: var(--panel);
+}
+.ap-stamina.is-warn {
+  border-left-color: var(--amber);
+}
+.ap-stamina.is-bad {
+  border-left-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, var(--panel));
+}
+.ap-stamina-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ap-stamina-num {
+  font-size: 0.85rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.ap-stamina.is-warn .ap-stamina-num {
+  color: var(--amber);
+}
+.ap-stamina.is-bad .ap-stamina-num {
+  color: var(--danger);
+}
+.ap-stamina-line {
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+.ap-stamina-note {
+  margin: 6px 0 0;
+  font-size: 0.68rem;
+  color: var(--muted);
+  line-height: 1.5;
+}

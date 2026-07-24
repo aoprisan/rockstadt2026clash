@@ -38,6 +38,30 @@ flags **clashes** — sets you've picked that overlap in time.
   which chosen sets beat them, and fills your free gaps with **taste-matched
   suggestions**: unpicked sets that fit the window, ranked by a tiny TF-IDF
   genre-affinity model built from everything you've picked (one tap adds them).
+- **Stamina — the five-day battery, and what to cut** — every other clashfinder
+  plans one day at a time and assumes you're a machine. This one plans the
+  *week* and assumes you're a body. It takes the planner's duel-resolved route
+  and charges it for hours on site, stage-to-stage walking, the small hours,
+  heat and UV from the live hourly forecast, rain, and real door-to-door travel
+  off the RATBV timetable — then repays it each night with however much sleep
+  the running order actually leaves you, **discounted for the part that lands in
+  daylight** (ten hours in bed after a 02:45 finish is not ten hours of sleep,
+  and in a tent in July it's a lot less). A reserve battery tracks the whole run
+  in one chart, with a ceiling that sinks each morning because five days in a
+  field is not five independent days. Each day card shows every input — on-site
+  hours, walking, feels-like peak, real sleep, door-to-door travel with the bus
+  to board — and ranked, numbered advice: the night your last set puts you at the
+  stop *after* the 211T stops running, the day with no hole big enough to eat in,
+  the stretch that feels 31° with UV 8 and which bands it covers. Advice comes
+  with the one tap that acts on it ("Drop Wolves In The Throne Room 01:45–02:45
+  → +1h 33m in bed, and the shuttle is still running"), verified by re-running
+  the model rather than guessed. And **⚕ Fix my week** searches your picks for
+  the fewest cuts that keep every night above the floor — greedy on
+  battery-recovered per unit of taste lost, ★ must-sees untouchable, and it
+  refuses to propose a sacrifice that buys nothing. Tell it whether you're
+  camping, on the bus or driving and the whole model re-reads. The projected low
+  point rides in the header; the day's read and its most urgent call ride inside
+  the Autopilot, because at 01:00 on the grounds nobody opens a planning panel.
 - **Festival Autopilot** — live turn-by-turn guidance through your day, built
   on the planner's duel-resolved route. A full-screen pilot view tells you what
   you're watching and until when, exactly **when to leave** (real walking time
@@ -106,9 +130,12 @@ flags **clashes** — sets you've picked that overlap in time.
   rain chance, wind) pulled live from the free, keyless
   [Open-Meteo](https://open-meteo.com/) API. Tap any day to expand an
   **hourly** strip covering the festival hours (14:00 → the small hours) with
-  temperature, condition and rain chance for each hour. The last result is
-  cached in `localStorage`, so the panel still shows the most recent forecast
-  offline on the festival grounds.
+  temperature, condition and rain chance for each hour. The same hourly pull
+  also carries apparent temperature and UV index — the numbers the stamina model
+  charges you for standing in — and falls back to the original field set if the
+  API ever refuses them, so the forecast can't be lost to a variable name. The
+  last result is cached in `localStorage`, so the panel still shows the most
+  recent forecast offline on the festival grounds.
 - **Installable & offline** — full PWA with a service worker (manifest, icons,
   offline caching) so it works on the festival grounds with patchy signal.
 

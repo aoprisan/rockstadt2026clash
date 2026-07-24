@@ -13,7 +13,7 @@ const API = 'https://api.open-meteo.com/v1/forecast';
 // Namespaced with a schema version: bump the suffix whenever the cached shape
 // changes (e.g. adding precipMm) so an older build's entry is ignored rather
 // than rendered without the new fields until its TTL lapses.
-const CACHE_KEY = 'ref2026:weather:v2';
+const CACHE_KEY = 'ref2026:weather:v3';
 const CACHE_TTL_MS = 60 * 60 * 1000; // an hour is plenty for a daily forecast
 
 // Festival sets run from mid-afternoon well past midnight, so the "day" we
@@ -31,10 +31,14 @@ interface DailyForecast {
   wind: number | null; // max wind km/h
 }
 
-interface HourForecast {
+export interface HourForecast {
   time: string; // ISO yyyy-mm-ddThh:00 (local festival time)
   code: number | null;
   temp: number | null; // °C
+  /** "Feels like" temperature — humidity, wind and radiation folded in. */
+  feels: number | null; // °C
+  /** UV index (0 at night, 8+ is a burn in under half an hour). */
+  uv: number | null;
   precip: number | null; // precipitation probability %
   precipMm: number | null; // precipitation amount for the hour, mm
   wind: number | null; // wind km/h
@@ -205,6 +209,24 @@ export function setWeatherIcons(
   return { icons: out, precip, precipMm };
 }
 
+/** True once any hourly forecast data is in memory (cached or fresh). */
+export function hasForecast(): boolean {
+  return hourIndex.size > 0;
+}
+
+/**
+ * The hourly forecast covering a noon-anchored festival minute on a given day,
+ * or undefined when that hour isn't in the forecast window. Minute 720 is the
+ * midnight that rolls into the following calendar date (see schedule.toMinutes).
+ */
+export function hourFor(dayDate: string, minute: number): HourForecast | undefined {
+  if (hourIndex.size === 0) return undefined;
+  const hourMin = Math.floor(minute / 60) * 60;
+  const realHour = (((Math.floor(hourMin / 60) + 12) % 24) + 24) % 24;
+  const onDate = hourMin >= 720 ? addDays(dayDate, 1) : dayDate;
+  return hourIndex.get(`${onDate}T${String(realHour).padStart(2, '0')}:00`);
+}
+
 /** Open a panel with the festival weather forecast (daily + hourly). */
 export function openWeather(): void {
   if (!dialog) dialog = buildDialog();
@@ -331,22 +353,35 @@ async function load(): Promise<void> {
   }
 }
 
-async function fetchForecast(): Promise<{ days: DailyForecast[]; hours: HourForecast[] }> {
+/** The hourly fields the forecast panel has always needed. */
+const HOURLY_CORE =
+  'weather_code,temperature_2m,precipitation_probability,precipitation,wind_speed_10m,is_day';
+/** Plus the two the stamina engine reads: heat load and burn risk. */
+const HOURLY_FULL = `${HOURLY_CORE},apparent_temperature,uv_index`;
+
+function forecastUrl(hourly: string): string {
   const params = new URLSearchParams({
     latitude: String(LAT),
     longitude: String(LON),
     daily:
       'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,wind_speed_10m_max',
-    hourly:
-      'weather_code,temperature_2m,precipitation_probability,precipitation,wind_speed_10m,is_day',
+    hourly,
     timezone: TZ,
     start_date: firstDate(),
     // Sets on the final night spill past midnight, so pull one extra day of
     // hourly data to cover those small hours.
     end_date: addDays(lastDate(), 1),
   });
+  return `${API}?${params.toString()}`;
+}
 
-  const res = await fetch(`${API}?${params.toString()}`);
+async function fetchForecast(): Promise<{ days: DailyForecast[]; hours: HourForecast[] }> {
+  // Open-Meteo rejects the whole request if any single variable name is one it
+  // doesn't know, so the two newer fields are asked for on a best-effort basis:
+  // if the extended call is refused, fall back to the field set that has always
+  // worked rather than losing the forecast entirely.
+  let res = await fetch(forecastUrl(HOURLY_FULL));
+  if (res.status === 400) res = await fetch(forecastUrl(HOURLY_CORE));
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const json = (await res.json()) as {
     daily?: {
@@ -362,6 +397,8 @@ async function fetchForecast(): Promise<{ days: DailyForecast[]; hours: HourFore
       time?: string[];
       weather_code?: (number | null)[];
       temperature_2m?: (number | null)[];
+      apparent_temperature?: (number | null)[];
+      uv_index?: (number | null)[];
       precipitation_probability?: (number | null)[];
       precipitation?: (number | null)[];
       wind_speed_10m?: (number | null)[];
@@ -405,6 +442,10 @@ async function fetchForecast(): Promise<{ days: DailyForecast[]; hours: HourFore
     time,
     code: h?.weather_code?.[i] ?? null,
     temp: h?.temperature_2m?.[i] ?? null,
+    // Fall back to the dry-bulb temperature when the API omits the apparent
+    // one, so heat maths never silently drops an hour.
+    feels: h?.apparent_temperature?.[i] ?? h?.temperature_2m?.[i] ?? null,
+    uv: h?.uv_index?.[i] ?? null,
     precip: h?.precipitation_probability?.[i] ?? null,
     precipMm: h?.precipitation?.[i] ?? null,
     wind: h?.wind_speed_10m?.[i] ?? null,
