@@ -46,19 +46,61 @@ export const SOURCES = [
 ];
 
 /**
- * Extra services laid on for the festival — announced by the organisers rather
- * than published as a RATBV stop display, so these are windows, not timetables.
+ * Extra services laid on for the festival — announced by RATBV at the request
+ * of Ghimbav town hall rather than published as a RATBV stop display, so these
+ * are windows and frequencies, not timetables.
+ *
+ * The daytime lines are the headline: for the whole event RATBV runs 210 and
+ * 220 out of Stadionul Municipal on a fixed 15-minute headway (line 210 can be
+ * supplemented further if the crowd needs it), so the printed timetables below
+ * become a floor, not the real cadence.
  *
  * The night buses matter more than their footnote size suggests: every night of
  * this running order ends after the last scheduled bus, so for most people they
- * are the ride home rather than a fallback. Note they run to Livada Poștei, not
- * back to Stadionul Municipal where the daytime lines start.
+ * are the ride home rather than a fallback. The return is its own metropolitan
+ * line — 211T, Festival Ghimbav → Livada Poștei — boarding at the "Festival
+ * Rockstadt" stop, not back at Stadionul Municipal where the daytime lines start.
  */
 export const EXTRAS = {
+  /**
+   * The festival's own dates. The last night's buses roll into 1 August in the
+   * small hours, but the panel keeps to the 27–31 July the rest of the app
+   * uses — the after-midnight tail is already implied by the night window
+   * below, and stamping "1 Aug" here just reads as a sixth day.
+   */
+  period: '27–31 Jul 2026',
+  /**
+   * Festival-long enhanced daytime frequency out of Stadionul Municipal. Both
+   * lines run every 15 minutes; 210 can be supplemented beyond that on demand.
+   */
+  daytime: {
+    lines: ['210', '220'] as BusLineId[],
+    headwayMin: 15,
+    from: STOP_TOWN,
+    supplementable: '210' as BusLineId,
+  },
   /** Both lines are supplemented across the arrival window. */
   inbound: { from: '13:00', to: '17:00' },
-  /** Return services from the festival area into central Brașov. */
-  night: { from: '00:30', to: '03:00', dest: 'Livada Poștei, Brașov' },
+  /**
+   * Return services from the festival area into central Brașov, run as the
+   * dedicated metropolitan line 211T at a ~3-minute headway from the festival
+   * gate. Announced as a window, not a timetable.
+   */
+  night: {
+    line: '211T',
+    route: 'Festival Ghimbav – Livada Poștei',
+    boardStop: 'Festival Rockstadt',
+    headwayMin: 3,
+    from: '00:30',
+    to: '03:00',
+    dest: 'Livada Poștei, Brașov',
+  },
+  /**
+   * On-site ticketing: mobile cashiers ("casieri volanți") sell travel tickets
+   * right at the boarding point during the night-return window, with roving
+   * control teams throughout the event.
+   */
+  tickets: { from: '00:30', to: '03:00', where: 'Festival Rockstadt' },
 };
 
 /** True for a departure inside the supplemented 13:00–17:00 arrival window. */

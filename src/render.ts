@@ -956,6 +956,19 @@ function renderBuses(day: FestivalDay): HTMLElement {
   );
   body.appendChild(outHead);
 
+  const fest = el('p', 'bus-fest');
+  fest.appendChild(
+    el('span', 'bus-fest-badge', `every ${buses.EXTRAS.daytime.headwayMin} min`),
+  );
+  fest.appendChild(
+    document.createTextNode(
+      ` For the festival (${buses.EXTRAS.period}), ${buses.EXTRAS.daytime.lines.join(
+        ' & ',
+      )} leave ${buses.STOP_TOWN} every ${buses.EXTRAS.daytime.headwayMin} minutes — line ${buses.EXTRAS.daytime.supplementable} supplemented further if the crowd needs it. The printed times below are the base timetable.`,
+    ),
+  );
+  body.appendChild(fest);
+
   const board = first ? buses.boardBy(type, first.start) : undefined;
   if (first && board) {
     const note = el('p', 'bus-note');
@@ -1040,7 +1053,9 @@ function renderBuses(day: FestivalDay): HTMLElement {
   // last scheduled bus, this is the service most people actually go home on.
   const night = el('div', 'bus-night');
   const nightHead = el('div', 'bus-night-head');
-  nightHead.appendChild(el('span', 'bus-night-label', 'Night buses'));
+  nightHead.appendChild(
+    el('span', 'bus-night-label', `Night line ${buses.EXTRAS.night.line}`),
+  );
   nightHead.appendChild(
     el('span', 'bus-night-window', `${buses.EXTRAS.night.from}–${buses.EXTRAS.night.to}`),
   );
@@ -1049,9 +1064,17 @@ function renderBuses(day: FestivalDay): HTMLElement {
     el(
       'p',
       'bus-night-note',
-      `Extra returns from the festival area to ${buses.EXTRAS.night.dest} — laid on for the festival, so exact departures are posted on site rather than in the RATBV timetable. Note they run to Livada Poștei, not back to ${buses.STOP_TOWN}.`,
+      `The ride home is the dedicated metropolitan line ${buses.EXTRAS.night.line} (${buses.EXTRAS.night.route}), boarding at the ${buses.EXTRAS.night.boardStop} stop about every ${buses.EXTRAS.night.headwayMin} minutes between ${buses.EXTRAS.night.from} and ${buses.EXTRAS.night.to}. It runs to ${buses.EXTRAS.night.dest}, not back to ${buses.STOP_TOWN} where the daytime lines start — laid on for the festival, so it's posted on site rather than in the RATBV timetable.`,
     ),
   );
+  const tickets = el('p', 'bus-night-note bus-tickets');
+  tickets.appendChild(el('span', 'bus-tickets-icon', '🎫'));
+  tickets.appendChild(
+    document.createTextNode(
+      ` No ticket? Mobile cashiers sell them right at the ${buses.EXTRAS.tickets.where} stop between ${buses.EXTRAS.tickets.from} and ${buses.EXTRAS.tickets.to}, and control teams ride throughout the event.`,
+    ),
+  );
+  night.appendChild(tickets);
   body.appendChild(night);
 
   const morning = buses.firstHomeNextDay(morningType);
