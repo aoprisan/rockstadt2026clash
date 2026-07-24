@@ -2361,6 +2361,77 @@ body {
   line-height: 1.4;
 }
 
+/* ---------- Ask Claude dialog ---------- */
+.ask {
+  max-width: 560px;
+}
+.ask-intro {
+  margin: 0 4px 10px;
+  font-size: 0.74rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.ask-empty {
+  margin: 0 2px 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.ask-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 220px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--text);
+  font: 0.72rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre;
+  overflow: auto;
+}
+.ask-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.ask-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.ask-btn {
+  flex: 1 1 auto;
+  min-width: 140px;
+  padding: 11px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.ask-btn:active {
+  background: var(--line);
+}
+.ask-btn-primary {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--panel));
+  color: var(--accent);
+}
+.ask-hint {
+  margin: 10px 2px 2px;
+  font-size: 0.66rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
 /* ---------- crew dialog ---------- */
 .crew {
   border: none;

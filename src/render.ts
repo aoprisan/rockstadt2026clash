@@ -15,6 +15,7 @@ import {
 import * as buses from './buses';
 import { openPlanner } from './planner';
 import { openAutopilot } from './autopilot';
+import { openAskClaude } from './ask-claude';
 import {
   applyResolutions,
   bestSplit,
@@ -463,6 +464,14 @@ function renderShareBar(): HTMLElement {
   plan.setAttribute('aria-label', 'Open the smart day planner');
   plan.addEventListener('click', () => openPlanner(activeDayId));
   bar.appendChild(plan);
+
+  const ask = el('button', 'btn-ghost btn-ask', '🤖 Ask Claude');
+  ask.setAttribute(
+    'aria-label',
+    'Ask Claude: build a prompt to find similar bands, optimise your day or resolve clashes',
+  );
+  ask.addEventListener('click', () => openAskClaude());
+  bar.appendChild(ask);
 
   const map = el('button', 'btn-ghost btn-map', '🗺 Map');
   map.setAttribute('aria-label', 'Open the festival site map');
