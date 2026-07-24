@@ -3399,6 +3399,42 @@ body {
   background: var(--line);
 }
 
+/* On a phone the three badges wrap into a ragged right-hand stack of three
+   different widths, eating a third of the header and squeezing the brand
+   block into a four-line paragraph. Below 480px the header splits cleanly
+   instead: the brand keeps the full width, and the badges sit under it as one
+   row of equal tiles — same order, aligned edges, equal heights. */
+@media (max-width: 480px) {
+  .app-header {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .brand {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  .header-stats {
+    /* One row, full width — the tiles share the space instead of wrapping. */
+    flex: 1 1 100%;
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+  .header-stats .stat {
+    flex: 1 1 0;
+    min-width: 0;
+    /* With only two badges (no plan yet, so no battery) an uncapped 1fr blows
+       them up into two half-screen slabs; capped, they just hug the right. */
+    max-width: 168px;
+    justify-content: center;
+    padding: 6px;
+  }
+  .header-stats .stat-label {
+    text-align: center;
+    letter-spacing: 0.3px;
+  }
+}
+
 .stamina {
   border: none;
   background: transparent;
