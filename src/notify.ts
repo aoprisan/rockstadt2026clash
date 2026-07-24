@@ -217,7 +217,7 @@ export function reschedule(): void {
   for (const id of selection.ids()) {
     if (done.has(id)) continue;
     const slot = getSlot(id);
-    if (!slot) continue;
+    if (!slot || slot.cancelled) continue;
 
     const start = slotStart(slot);
     if (!Number.isFinite(start)) continue;

@@ -79,7 +79,8 @@ export interface DayPlan {
 function pickedSlots(picks?: ReadonlySet<string>): SetSlot[] {
   return [...(picks ?? selection.ids())]
     .map((id) => getSlot(id))
-    .filter((s): s is SetSlot => Boolean(s));
+    .filter((s): s is SetSlot => Boolean(s))
+    .filter((s) => !s.cancelled);
 }
 
 /* ---------- the optimiser ---------- */

@@ -1,6 +1,6 @@
 import { DAYS } from './data';
 import type { FestivalDay } from './types';
-import { buildSlots, fmtDuration, walkMinutes } from './schedule';
+import { buildSlots, fmtDuration, subscribeSchedule, walkMinutes } from './schedule';
 import { planDay, type PlannedSet } from './planner';
 import { selection } from './store';
 import { subscribeDuels } from './duel';
@@ -284,6 +284,11 @@ function buildDialog(): HTMLDialogElement {
     if (d.open) paint();
   });
   subscribeDuels(() => {
+    legsStale = true;
+    if (d.open) paint();
+  });
+  // A stage running late re-times the route under the pilot's feet.
+  subscribeSchedule(() => {
     legsStale = true;
     if (d.open) paint();
   });

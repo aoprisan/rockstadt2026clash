@@ -38,6 +38,24 @@ flags **clashes** — sets you've picked that overlap in time.
   which chosen sets beat them, and fills your free gaps with **taste-matched
   suggestions**: unpicked sets that fit the window, ranked by a tiny TF-IDF
   genre-affinity model built from everything you've picked (one tap adds them).
+- **Running order patches — the festival as it actually runs** — every
+  clashfinder treats the poster as gospel. Real festivals don't: a stage loses
+  fifteen minutes in the afternoon and carries it all night, a band misses a
+  border crossing, a set gets pulled for weather. From that moment every clash,
+  every walk, every countdown and every "leave at 23:16" in a planning app is
+  quietly wrong — and the app never says so. **⏱ Running order** (in Options,
+  or from the banner) is the patch layer: mark a stage as running late and every
+  set on it that hasn't started yet moves — sets you already watched keep the
+  times they actually had — or nudge a single set, or mark a band as not
+  happening at all. Everything downstream re-times itself off the patched
+  running order: the timeline (moved sets carry a `⏱ +15m` chip, pulled ones are
+  struck through), clash and tight-walk detection, the day planner's chain, the
+  Autopilot's "leave at", your on-device reminders, the calendar export, crew
+  meet-ups and the stamina model. A permanent banner says how many patches are
+  live, because times that silently disagree with the printed poster are worse
+  than no times at all. And patches ride along on the **crew beam**: whoever is
+  standing at the barrier when the stage manager announces the delay can push
+  the fix to everyone they meet, with no network at all.
 - **Stamina — the five-day battery, and what to cut** — every other clashfinder
   plans one day at a time and assumes you're a machine. This one plans the
   *week* and assumes you're a body. It takes the planner's duel-resolved route
@@ -75,10 +93,11 @@ flags **clashes** — sets you've picked that overlap in time.
 - **Crew beam — sync plans by QR, zero network** — one phone shows a QR
   (Crew → 📡 My crew QR), the other scans it with its camera (BarcodeDetector,
   with a paste-the-link fallback for browsers without it), and the plans merge.
-  A beam carries your name, your picks **and every crew plan you've already
-  collected**, so plans propagate gossip-style: scan one friend and you inherit
-  everyone they've met. The same `#c=…` beam also travels as a plain link over
-  any messenger, and scanning it never touches your own picks. Server-based
+  A beam carries your name, your picks, **every crew plan you've already
+  collected** and any **running-order patches** you're carrying, so plans and
+  corrections propagate gossip-style: scan one friend and you inherit everyone
+  they've met, and the delay they logged at the barrier. The same `#c=…` beam
+  also travels as a plain link over any messenger, and scanning it never touches your own picks. Server-based
   crew apps go dark when the site's signal does; this needs nothing but eye
   contact.
 - **Crew mode** — paste the picks links your friends share and their plans
@@ -178,6 +197,14 @@ Returning visitors whose device last saw an older stamp then get a one-time
 "running order updated" banner so stale plans don't go unnoticed. Band genres
 and curated listen links live in `src/band-meta.ts` (keyed by band name);
 bands without an entry fall back to a Spotify search.
+
+`src/data.ts` is the poster; `src/delays.ts` is the night. Patches logged in
+**⏱ Running order** are applied in `schedule.ts` as slots are built, so every
+consumer — clashes, planner, pilot, reminders, calendar, stamina — sees the
+patched times without knowing the patch layer exists. `ALL_SLOTS` is rebuilt in
+place when a patch lands (its identity, order and length are load-bearing: the
+share-link codec indexes picks by position in it), and `subscribeSchedule`
+tells the views to repaint.
 
 ## License
 

@@ -25,7 +25,8 @@ function pickedSlots(): SetSlot[] {
   return selection
     .ids()
     .map((id) => getSlot(id))
-    .filter((s): s is SetSlot => Boolean(s));
+    .filter((s): s is SetSlot => Boolean(s))
+    .filter((s) => !s.cancelled);
 }
 
 /** Earliest start across the whole line-up — the festival's first note. */

@@ -48,7 +48,8 @@ function pickedSlots(): SetSlot[] {
   return selection
     .ids()
     .map((id) => getSlot(id))
-    .filter((s): s is SetSlot => Boolean(s));
+    .filter((s): s is SetSlot => Boolean(s))
+    .filter((s) => !s.cancelled);
 }
 
 /** Short stage name without the trailing "Stage" for compact prompt lines. */

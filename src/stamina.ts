@@ -1,6 +1,6 @@
 import { DAYS } from './data';
 import type { FestivalDay, SetSlot } from './types';
-import { fmtDuration, getSlot, minutesToLabel, toMinutes } from './schedule';
+import { fmtDuration, getSlot, minutesToLabel, subscribeSchedule, toMinutes } from './schedule';
 import { planDay, type DayPlan, type PlannedSet } from './planner';
 import { subscribeDuels } from './duel';
 import { selection } from './store';
@@ -602,6 +602,7 @@ export function currentWeek(): Week {
 selection.subscribe(invalidateWeek);
 subscribeDuels(invalidateWeek);
 subscribeForecast(invalidateWeek);
+subscribeSchedule(invalidateWeek);
 
 /* ---------- interventions ---------- */
 

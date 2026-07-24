@@ -3,6 +3,7 @@ import { FESTIVAL } from './data';
 import { decodePicks, encodeIds, encodePicks } from './picks-link';
 import { addFriend, crewList, type Friend } from './crew';
 import { selection } from './store';
+import { exportDelays, importDelays, type DelayWire } from './delays';
 
 /**
  * Crew beam: sync festival plans phone-to-phone with **zero network** — point a
@@ -48,6 +49,12 @@ export interface BeamPayload {
   me: BeamMember;
   /** The crew plans they carry (relayed friends-of-friends). */
   crew: BeamMember[];
+  /**
+   * Running-order patches they carry. Unlike picks these aren't an opinion —
+   * they're a claim about what the festival is actually doing — so they spread
+   * to everyone a beam touches.
+   */
+  delays?: DelayWire;
 }
 
 /** Wire form: names + compact picks tokens, not raw id lists. */
@@ -55,6 +62,8 @@ interface BeamWire {
   v: number;
   me: { n: string; p: string };
   fr: { n: string; p: string }[];
+  /** Running-order patches, omitted entirely when there are none. */
+  dl?: DelayWire;
 }
 
 function toBase64Url(bytes: Uint8Array): string {
@@ -82,6 +91,8 @@ export function encodeBeam(): string {
     me: { n: myName(), p: encodePicks() },
     fr: crewList().map((f) => ({ n: f.name, p: encodeIds(f.ids) })),
   };
+  const dl = exportDelays();
+  if (dl) wire.dl = dl;
   const bytes = new TextEncoder().encode(JSON.stringify(wire));
   return BEAM_VERSION + toBase64Url(bytes);
 }
@@ -107,7 +118,8 @@ export function decodeBeam(token: string): BeamPayload | null {
     const crew = Array.isArray(w.fr)
       ? w.fr.map(member).filter((m): m is BeamMember => m !== null)
       : [];
-    return { me, crew };
+    // Older beams carry no patches at all; newer ones are validated on import.
+    return { me, crew, delays: w.dl };
   } catch {
     return null;
   }
@@ -122,6 +134,8 @@ export interface BeamResult {
   updated: string[];
   /** Members skipped because they look like *you* (your plan stays yours). */
   skippedSelf: number;
+  /** Running-order patches picked up from the beam. */
+  patches: number;
 }
 
 /**
@@ -132,7 +146,7 @@ export interface BeamResult {
 export function applyBeam(beam: BeamPayload): BeamResult {
   const mine = myName().toLowerCase();
   const before = new Set(crewList().map((f) => f.name.toLowerCase()));
-  const result: BeamResult = { added: [], updated: [], skippedSelf: 0 };
+  const result: BeamResult = { added: [], updated: [], skippedSelf: 0, patches: 0 };
 
   const merge = (m: BeamMember): void => {
     if (!m.name || m.ids.length === 0) return;
@@ -148,6 +162,7 @@ export function applyBeam(beam: BeamPayload): BeamResult {
 
   merge(beam.me);
   for (const m of beam.crew) merge(m);
+  result.patches = importDelays(beam.delays);
   return result;
 }
 
@@ -432,6 +447,9 @@ function describeResult(r: BeamResult): string {
   const bits: string[] = [];
   if (r.added.length) bits.push(`added ${r.added.join(', ')}`);
   if (r.updated.length) bits.push(`updated ${r.updated.join(', ')}`);
+  if (r.patches) {
+    bits.push(`picked up ${r.patches} running-order patch${r.patches === 1 ? '' : 'es'}`);
+  }
   if (bits.length === 0) return 'Nothing new in that beam.';
   return `🤘 Crew synced — ${bits.join(' · ')}.`;
 }
