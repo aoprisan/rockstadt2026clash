@@ -63,11 +63,12 @@ export const SOURCES = [
  */
 export const EXTRAS = {
   /**
-   * The festival transport period. The music runs 27–31 July, but the buses
-   * carry the final night's crowd home in the small hours, so the service
-   * period runs a day longer.
+   * The festival's own dates. The last night's buses roll into 1 August in the
+   * small hours, but the panel keeps to the 27–31 July the rest of the app
+   * uses — the after-midnight tail is already implied by the night window
+   * below, and stamping "1 Aug" here just reads as a sixth day.
    */
-  period: '27 Jul – 1 Aug 2026',
+  period: '27–31 Jul 2026',
   /**
    * Festival-long enhanced daytime frequency out of Stadionul Municipal. Both
    * lines run every 15 minutes; 210 can be supplemented beyond that on demand.
