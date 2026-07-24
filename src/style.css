@@ -1863,6 +1863,39 @@ body {
   color: var(--muted);
 }
 
+/* Festival-long enhanced frequency: the daytime headline sits above the base
+   timetable chips, with the headway called out as a badge. */
+.bus-fest {
+  margin: 8px 0 0;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+.bus-fest-badge {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--bg);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+/* On-site ticketing sits inside the night block, one rung quieter than the
+   ride-home note it follows. */
+.bus-tickets {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.bus-tickets-icon {
+  margin-right: 2px;
+}
+
 /* The night service carries the whole return leg once the timetable runs out,
    so it gets a block of its own rather than a line of fine print. */
 .bus-night {
