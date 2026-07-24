@@ -2835,3 +2835,424 @@ body {
   top: auto;
   bottom: calc(100% + 8px);
 }
+
+/* ---------- crew beam (offline QR sync) ---------- */
+.crew-beam-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.crew-beam-btn {
+  flex: 1;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--line));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--text);
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 9px 10px;
+  cursor: pointer;
+}
+.crew-beam-btn:active {
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
+}
+
+.beam {
+  border: none;
+  background: transparent;
+  padding: 0;
+  width: calc(100% - 24px);
+  max-width: 460px;
+  max-height: calc(100dvh - 24px);
+  color: var(--text);
+}
+.beam::backdrop {
+  background: rgba(8, 7, 20, 0.82);
+  backdrop-filter: blur(3px);
+}
+.beam-card {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 24px);
+  padding: 12px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: linear-gradient(160deg, var(--panel-2), var(--panel));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+.beam-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 4px 10px;
+}
+.beam-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+.beam-close {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.beam-close:active {
+  background: var(--line);
+}
+.beam-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 4px 4px;
+  -webkit-overflow-scrolling: touch;
+}
+.beam-intro {
+  margin: 0 0 10px;
+  font-size: 0.74rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.beam-name-row {
+  margin-bottom: 10px;
+}
+.beam-name-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+.beam-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.beam-tab {
+  flex: 1;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+.beam-tab.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.beam-qr {
+  background: #fff;
+  border-radius: 14px;
+  padding: 10px;
+  max-width: 280px;
+  margin: 0 auto 10px;
+}
+.beam-qr svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.beam-carries {
+  margin: 0 0 10px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.45;
+  text-align: center;
+}
+.beam-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.beam-btn {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+.beam-btn.primary {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.beam-btn:active {
+  background: var(--panel);
+}
+.beam-nudge {
+  margin: 0 0 10px;
+  font-size: 0.76rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.beam-cam-host {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.beam-video {
+  width: 100%;
+  max-height: 300px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  object-fit: cover;
+  background: #000;
+}
+.beam-status {
+  margin: 0 0 10px;
+  min-height: 1.2em;
+  font-size: 0.76rem;
+  color: var(--ok);
+  line-height: 1.45;
+}
+.beam-status.is-error {
+  color: var(--danger);
+}
+.beam-paste {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.beam-paste .beam-btn {
+  align-self: flex-start;
+}
+
+/* ---------- festival autopilot ---------- */
+.autopilot {
+  border: none;
+  background: transparent;
+  padding: 0;
+  width: 100%;
+  max-width: 560px;
+  height: 100dvh;
+  max-height: 100dvh;
+  color: var(--text);
+}
+.autopilot::backdrop {
+  background: rgba(8, 7, 20, 0.92);
+}
+.ap-card {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  padding: 14px 14px calc(14px + env(safe-area-inset-bottom));
+  background: linear-gradient(175deg, var(--panel-2), var(--bg, #0b0a12));
+}
+.ap-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 10px;
+}
+.ap-title {
+  margin: 0;
+  flex: 1;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+.ap-wake {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 6px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ap-wake.on {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.ap-close {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.ap-tabs {
+  display: flex;
+  gap: 6px;
+  padding-bottom: 10px;
+}
+.ap-tab {
+  flex: 1;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 6px 0;
+  cursor: pointer;
+}
+.ap-tab.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.ap-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.ap-now {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 18px 16px;
+  text-align: center;
+  background: var(--panel);
+  margin-bottom: 12px;
+}
+.ap-now.is-watch {
+  border-color: color-mix(in srgb, var(--c) 60%, var(--line));
+  box-shadow: inset 0 0 40px color-mix(in srgb, var(--c) 10%, transparent);
+}
+.ap-now.is-walk {
+  border-color: color-mix(in srgb, var(--accent) 70%, var(--line));
+}
+.ap-now.ap-flash {
+  animation: ap-flash 0.8s ease-in-out 4;
+}
+@keyframes ap-flash {
+  50% {
+    background: color-mix(in srgb, var(--accent) 26%, var(--panel));
+  }
+}
+.ap-kicker {
+  margin: 0 0 6px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ap-big {
+  margin: 0 0 8px;
+  font-size: clamp(1.6rem, 8vw, 2.4rem);
+  font-weight: 900;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+.ap-stage {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 3px 12px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #0b0a12;
+  background: var(--c, var(--accent));
+  margin-bottom: 8px;
+}
+.ap-sub {
+  margin: 0 0 6px;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+.ap-cue {
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  color: var(--accent);
+  font-weight: 700;
+  line-height: 1.45;
+}
+.ap-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+  margin: 8px auto 0;
+  max-width: 320px;
+}
+.ap-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--c, var(--accent));
+  transition: width 1s linear;
+}
+.ap-alert-note {
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 18%, var(--panel));
+  color: var(--text);
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+.ap-rest-head {
+  margin: 0 0 6px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ap-rest-list {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ap-rest-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  padding: 8px 10px;
+  font-size: 0.78rem;
+}
+.ap-rest-time {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+.ap-rest-band {
+  font-weight: 800;
+  color: var(--c, var(--text));
+}
+.ap-rest-stage {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+.ap-rest-walk {
+  flex-basis: 100%;
+  color: var(--accent);
+  font-size: 0.68rem;
+}
+.ap-hint {
+  margin: 0;
+  font-size: 0.68rem;
+  color: var(--muted);
+  line-height: 1.5;
+}

@@ -2,6 +2,7 @@ import { DAYS } from './data';
 import type { SetSlot } from './types';
 import { fmtDuration, getSlot, minutesToLabel } from './schedule';
 import { decodePicks } from './picks-link';
+import { openBeam } from './crew-qr';
 import { selection } from './store';
 
 /**
@@ -247,6 +248,21 @@ function repaint(): void {
       'Ask a friend for their picks link (Options → 🔗 Share picks link), paste it here, and their plan overlays yours: badges on the timeline, the sets you’ll be together for, and the windows when the whole crew is free to meet.',
     ),
   );
+
+  // Beam: the no-signal sync path — show a QR or scan a friend's. One scan
+  // also relays every crew plan the other phone already carries.
+  const beam = el('div', 'crew-beam-bar');
+  const showQr = el('button', 'crew-beam-btn', '📡 My crew QR');
+  showQr.type = 'button';
+  showQr.title = 'Show a QR of your plan (+ your crew’s) for a friend to scan — no signal needed';
+  showQr.addEventListener('click', () => openBeam('show', repaint));
+  beam.appendChild(showQr);
+  const scanQr = el('button', 'crew-beam-btn', '📷 Scan a friend');
+  scanQr.type = 'button';
+  scanQr.title = 'Scan a friend’s crew QR with your camera — works fully offline';
+  scanQr.addEventListener('click', () => openBeam('scan', repaint));
+  beam.appendChild(scanQr);
+  body.appendChild(beam);
 
   body.appendChild(renderAddForm());
 

@@ -38,6 +38,25 @@ flags **clashes** — sets you've picked that overlap in time.
   which chosen sets beat them, and fills your free gaps with **taste-matched
   suggestions**: unpicked sets that fit the window, ranked by a tiny TF-IDF
   genre-affinity model built from everything you've picked (one tap adds them).
+- **Festival Autopilot** — live turn-by-turn guidance through your day, built
+  on the planner's duel-resolved route. A full-screen pilot view tells you what
+  you're watching and until when, exactly **when to leave** (real walking time
+  charged: "leave at 23:16 · 🚶 4m → Brașov for Marilyn Manson"), when you're
+  in free time and until when, and when to move — with a 5-minute warning and a
+  go-time buzz (vibration) for every stage change, a live progress bar, and an
+  optional **screen wake lock** so the phone can sit propped up like a boarding
+  gate display. Change a pick or settle a duel mid-evening and the pilot
+  re-routes instantly. Entirely on-device: it keeps navigating when the
+  festival network doesn't.
+- **Crew beam — sync plans by QR, zero network** — one phone shows a QR
+  (Crew → 📡 My crew QR), the other scans it with its camera (BarcodeDetector,
+  with a paste-the-link fallback for browsers without it), and the plans merge.
+  A beam carries your name, your picks **and every crew plan you've already
+  collected**, so plans propagate gossip-style: scan one friend and you inherit
+  everyone they've met. The same `#c=…` beam also travels as a plain link over
+  any messenger, and scanning it never touches your own picks. Server-based
+  crew apps go dark when the site's signal does; this needs nothing but eye
+  contact.
 - **Crew mode** — paste the picks links your friends share and their plans
   overlay yours, entirely client-side: initials badges on every set a friend is
   going to, a per-day list of the sets you'll be together for, and computed

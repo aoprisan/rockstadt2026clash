@@ -14,6 +14,7 @@ import {
 } from './schedule';
 import * as buses from './buses';
 import { openPlanner } from './planner';
+import { openAutopilot } from './autopilot';
 import {
   applyResolutions,
   bestSplit,
@@ -449,6 +450,14 @@ function renderNotifyControl(): HTMLElement | null {
 /** Sticky bottom bar holding the primary share actions. */
 function renderShareBar(): HTMLElement {
   const bar = el('div', 'share-bar');
+
+  const pilot = el('button', 'btn-ghost btn-pilot', '⚡ Pilot');
+  pilot.setAttribute(
+    'aria-label',
+    'Open the festival autopilot: live turn-by-turn guidance through your day',
+  );
+  pilot.addEventListener('click', () => openAutopilot());
+  bar.appendChild(pilot);
 
   const plan = el('button', 'btn-ghost btn-plan', '🧭 Plan');
   plan.setAttribute('aria-label', 'Open the smart day planner');
