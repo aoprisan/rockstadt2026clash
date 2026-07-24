@@ -6,7 +6,9 @@ import {
   findTightTransitions,
   fmtDuration,
   getSlot,
+  minutesToLabel,
 } from './schedule';
+import { boardBy, dayTypeFor, EXTRAS, STOP_TOWN, WALK_MIN } from './buses';
 import { selection } from './store';
 import { tasteProfile } from './taste';
 
@@ -22,7 +24,7 @@ import { tasteProfile } from './taste';
  */
 
 /** Where the prompt should steer the assistant. */
-export type AskFocus = 'all' | 'similar' | 'optimise' | 'clashes';
+export type AskFocus = 'all' | 'similar' | 'optimise' | 'clashes' | 'buses' | 'food';
 
 const STAGE_ORDER: StageId[] = ['rugina', 'brasov', 'calmuc'];
 
@@ -31,7 +33,14 @@ const FOCUS_LABELS: Record<AskFocus, string> = {
   similar: '🎸 Similar bands',
   optimise: '🧭 Optimise my day',
   clashes: '⚔ Resolve clashes',
+  buses: '🚌 Buses',
+  food: '🍽 When to eat',
 };
+
+/** How early before the first set we aim to be at the gate. */
+const ARRIVE_BUFFER_MIN = 20;
+/** Shortest gap in a day's picks worth calling a meal window. */
+const MEAL_GAP_MIN = 30;
 
 function pickedSlots(): SetSlot[] {
   return selection
@@ -92,6 +101,66 @@ function tightLines(picks: SetSlot[]): string[] {
   });
 }
 
+/** Picks for one day, sorted by start then end. */
+function dayPicks(picks: SetSlot[], dayId: string): SetSlot[] {
+  return picks
+    .filter((s) => s.dayId === dayId)
+    .sort((a, b) => a.start - b.start || a.end - b.end);
+}
+
+/** The general RATBV facts that hold for the whole festival. */
+function busFacts(): string {
+  const door = EXTRAS.daytime.headwayMin;
+  return [
+    '## Getting there & back (RATBV city buses)',
+    `- To the site: lines ${EXTRAS.daytime.lines.join(' and ')} from ${STOP_TOWN} (Brașov), roughly every ${door} min during the festival, with extra runs ${EXTRAS.inbound.from}–${EXTRAS.inbound.to}. Ride is ~13–14 min, then a ~${WALK_MIN} min walk from the Ghimbav Făgărașului stop to the gate.`,
+    `- Home at night: line ${EXTRAS.night.line} (${EXTRAS.night.route}), boarding at the "${EXTRAS.night.boardStop}" stop, every ~${EXTRAS.night.headwayMin} min from ${EXTRAS.night.from} to ${EXTRAS.night.to}. Tickets are sold on-site at the stop during that window.`,
+    '- Earlier in the evening, daytime 210/220 buses run back from Ghimbav until roughly 23:00–23:40.',
+  ].join('\n');
+}
+
+/** Per-day: when the day starts/ends and which bus reaches the gate in time. */
+function travelLines(picks: SetSlot[]): string[] {
+  const out: string[] = [];
+  for (const day of DAYS) {
+    const dp = dayPicks(picks, day.id);
+    if (dp.length === 0) continue;
+    const first = dp[0];
+    const lastEnd = dp.reduce((a, b) => (b.end > a.end ? b : a));
+    const type = dayTypeFor(day.date);
+    const bus = boardBy(type, first.start - ARRIVE_BUFFER_MIN);
+    const arrival = bus
+      ? `catch the ${bus.line} at ${bus.time} from ${STOP_TOWN} (at the gate ~${minutesToLabel(bus.atGate)})`
+      : 'only the very first morning buses (~05:00) run this early';
+    out.push(
+      `- ${day.label}: first set ${first.band} at ${first.startLabel}; last set ends ${lastEnd.endLabel}. To arrive in time, ${arrival}. Getting home after ${lastEnd.endLabel} means the ${EXTRAS.night.line} night line (${EXTRAS.night.from}–${EXTRAS.night.to}).`,
+    );
+  }
+  return out;
+}
+
+/** Per-day free stretches inside the picks that are long enough to eat in. */
+function mealLines(picks: SetSlot[]): string[] {
+  const out: string[] = [];
+  for (const day of DAYS) {
+    const dp = dayPicks(picks, day.id);
+    if (dp.length === 0) continue;
+    const gaps: string[] = [];
+    let cursor = dp[0].end; // latest end seen so far (picks can overlap)
+    for (let i = 1; i < dp.length; i++) {
+      const s = dp[i];
+      if (s.start - cursor >= MEAL_GAP_MIN) {
+        gaps.push(`${minutesToLabel(cursor)}–${minutesToLabel(s.start)} (${fmtDuration(s.start - cursor)})`);
+      }
+      if (s.end > cursor) cursor = s.end;
+    }
+    out.push(
+      `- ${day.label}: ${gaps.length ? `free ${gaps.join(', ')}` : 'back-to-back — no real gap, so eat before the first set or after the last'}`,
+    );
+  }
+  return out;
+}
+
 /** The mode-specific "what I'd like from you" section. */
 function askSection(focus: AskFocus, hasPicks: boolean): string {
   const similar = hasPicks
@@ -101,6 +170,10 @@ function askSection(focus: AskFocus, hasPicks: boolean): string {
     'Help me turn my picks into the best realistic plan for each day: which sets to prioritise, where a pick isn’t worth a cross-site walk, and which free gaps are worth filling. Assume I can’t be in two places at once and it takes a few minutes to walk between stages.';
   const clashes =
     'Help me resolve the clashes and tight walks above. For each overlapping pair, recommend which to see (or how to split the set), based on how well each fits my taste and how much overlap there is.';
+  const buses =
+    'Using the bus facts and my per-day arrival/departure below, tell me which bus to catch to reach the gate comfortably before my first set each day, and my best option home after the last set (the night line included). Call out any day where the first set is early or the last set runs so late that only the night buses work.';
+  const food =
+    'Using my per-day plan and its free gaps below, tell me the best windows to grab food and drink without missing anything I care about — especially around my ★ must-sees — and whether any day is so back-to-back that I should eat before the first set or after the last instead.';
 
   switch (focus) {
     case 'similar':
@@ -109,13 +182,19 @@ function askSection(focus: AskFocus, hasPicks: boolean): string {
       return optimise;
     case 'clashes':
       return clashes;
+    case 'buses':
+      return buses;
+    case 'food':
+      return food;
     case 'all':
     default:
       return [
-        'Please help me with all three of these:',
+        'Please help me with all of these:',
         `1. **Similar bands.** ${similar}`,
         `2. **Optimise my day.** ${optimise}`,
         `3. **Resolve clashes.** ${clashes}`,
+        `4. **Buses.** ${buses}`,
+        `5. **When to eat.** ${food}`,
       ].join('\n');
   }
 }
@@ -155,8 +234,15 @@ export function buildPrompt(focus: AskFocus): string {
           tight.join('\n'),
       );
     }
+
+    lines.push(`\n${busFacts()}`);
+    lines.push(`\n## My arrival & departure each day\n${travelLines(picks).join('\n')}`);
+    lines.push(
+      `\n## Free gaps in my picks (for meal breaks)\n${mealLines(picks).join('\n')}`,
+    );
   } else {
     lines.push(`\n## My current picks\nI haven't picked anything yet.`);
+    lines.push(`\n${busFacts()}`);
   }
 
   lines.push(
@@ -244,7 +330,7 @@ function buildDialog(): HTMLDialogElement {
   const intro = el(
     'p',
     'ask-intro',
-    'Build a ready-to-paste prompt from your picks — clashes, tight walks and the rest of the bill included — then copy it or open it straight in Claude. Nothing leaves your device until you do.',
+    'Build a ready-to-paste prompt from your picks — clashes, tight walks, buses, meal gaps and the rest of the bill included — then copy it or open it straight in Claude. Nothing leaves your device until you do.',
   );
   card.appendChild(intro);
 
