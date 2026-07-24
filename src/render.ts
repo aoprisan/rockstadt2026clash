@@ -159,14 +159,13 @@ export function mount(root: HTMLElement): void {
   });
 
   // A running-order patch re-times the whole app: the grid, the live bar, the
-  // header counts, the banner — and the OS-level reminders, which were queued
-  // against the old times.
+  // header counts and the banner. (The reminder scheduler re-arms itself off
+  // the same signal — see notify.init.)
   subscribeSchedule(() => {
     renderContent(main);
     renderLiveBar();
     refreshChrome();
     renderUpdateBanner();
-    notify.reschedule();
   });
 
   // Per-set weather icons need the hourly forecast; load it in the background
