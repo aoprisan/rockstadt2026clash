@@ -1,9 +1,10 @@
 import { DAYS } from './data';
 import type { FestivalDay } from './types';
-import { buildSlots, walkMinutes } from './schedule';
+import { buildSlots, fmtDuration, subscribeSchedule, walkMinutes } from './schedule';
 import { planDay, type PlannedSet } from './planner';
 import { selection } from './store';
 import { subscribeDuels } from './duel';
+import { dayAdvice, dayRead, reserveTone } from './stamina';
 
 /**
  * Festival Autopilot: live turn-by-turn guidance through your day. It takes the
@@ -286,6 +287,11 @@ function buildDialog(): HTMLDialogElement {
     legsStale = true;
     if (d.open) paint();
   });
+  // A stage running late re-times the route under the pilot's feet.
+  subscribeSchedule(() => {
+    legsStale = true;
+    if (d.open) paint();
+  });
 
   document.body.appendChild(d);
   return d;
@@ -349,11 +355,43 @@ function paint(): void {
   const state = stateAt(legs, nowMs);
   body.appendChild(renderNow(state, nowMs));
 
+  const strip = renderStamina(dayId);
+  if (strip) body.appendChild(strip);
+
   const rest = upcoming(state, nowMs);
   if (rest.length > 0) body.appendChild(renderRest(rest, state));
 
   checkAlerts(nowMs);
   paintWakeButton();
+}
+
+/**
+ * A one-line read from the stamina model for the day being piloted: what this
+ * night costs you, and the single most urgent thing to do about it. On the
+ * grounds at 01:00 that is usually the ride home, and it is exactly when nobody
+ * checks a planning panel — so the pilot carries it.
+ */
+function renderStamina(day: string): HTMLElement | null {
+  const read = dayRead(day);
+  if (!read) return null;
+  const wrap = el('div', `ap-stamina is-${reserveTone(read.reserveEnd)}`);
+
+  const head = el('div', 'ap-stamina-head');
+  head.appendChild(el('span', 'ap-stamina-num', `🔋 ${read.reserveEnd}%`));
+  head.appendChild(
+    el(
+      'span',
+      'ap-stamina-line',
+      read.sleepEffective != null
+        ? `left by the end of tonight · ~${fmtDuration(Math.round(read.sleepEffective * 60))} of real sleep after`
+        : 'left by the end of tonight',
+    ),
+  );
+  wrap.appendChild(head);
+
+  const top = dayAdvice(day).find((i) => i.severity !== 'tip');
+  if (top) wrap.appendChild(el('p', 'ap-stamina-note', `${top.icon} ${top.title} — ${top.detail}`));
+  return wrap;
 }
 
 function paintTabs(): void {

@@ -1,5 +1,5 @@
 import { DAYS } from './data';
-import { getSlot } from './schedule';
+import { getSlot, subscribeSchedule } from './schedule';
 import { selection } from './store';
 import type { SetSlot } from './types';
 
@@ -151,6 +151,34 @@ function firedIds(): Set<string> {
   }
 }
 
+/**
+ * Forget that a reminder already went out for sets that are still ahead of us.
+ *
+ * A reminder is only "done" for a set that has been and gone. When a stage slip
+ * pushes a set later, the reminder the user already got was for a time that no
+ * longer exists — so the alert has to be allowed to fire again against the new
+ * one. (Pulling a set earlier is handled by the same rule.)
+ */
+function unfireUpcoming(): void {
+  const ids = firedIds();
+  if (ids.size === 0) return;
+  const now = Date.now();
+  let changed = false;
+  for (const id of [...ids]) {
+    const slot = getSlot(id);
+    if (slot && !slot.cancelled && slot.startAt.getTime() > now) {
+      ids.delete(id);
+      changed = true;
+    }
+  }
+  if (!changed) return;
+  try {
+    localStorage.setItem(FIRED_KEY, JSON.stringify([...ids]));
+  } catch {
+    /* ignore */
+  }
+}
+
 function markFired(id: string): void {
   try {
     const ids = firedIds();
@@ -217,7 +245,7 @@ export function reschedule(): void {
   for (const id of selection.ids()) {
     if (done.has(id)) continue;
     const slot = getSlot(id);
-    if (!slot) continue;
+    if (!slot || slot.cancelled) continue;
 
     const start = slotStart(slot);
     if (!Number.isFinite(start)) continue;
@@ -245,6 +273,11 @@ export function init(notify?: () => void): void {
   onChange = notify;
 
   selection.subscribe(reschedule);
+  // A patched running order moves the sets the timers were queued against.
+  subscribeSchedule(() => {
+    unfireUpcoming();
+    reschedule();
+  });
   scanTimer = setInterval(reschedule, SCAN_INTERVAL_MS);
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') reschedule();

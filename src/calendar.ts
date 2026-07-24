@@ -109,7 +109,14 @@ function wrapCalendar(method: 'PUBLISH' | 'CANCEL', events: string[]): string {
 }
 
 function slotsFromIds(ids: string[]): SetSlot[] {
-  return ids.map((id) => getSlot(id)).filter((s): s is SetSlot => Boolean(s));
+  return (
+    ids
+      .map((id) => getSlot(id))
+      .filter((s): s is SetSlot => Boolean(s))
+      // Never write a calendar entry for a set that isn't happening. Times here
+      // are the patched ones, so an export after a slip reflects the real night.
+      .filter((s) => !s.cancelled)
+  );
 }
 
 function loadExported(): Set<string> {

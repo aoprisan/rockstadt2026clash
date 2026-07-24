@@ -1,5 +1,6 @@
 import { DAYS, STAGES } from './data';
 import { bandGenre, bandListen } from './band-meta';
+import { isCancelled, shiftFor, subscribeDelays } from './delays';
 import type { FestivalDay, SetSlot, StageId } from './types';
 
 const STAGE_ORDER: StageId[] = ['rugina', 'brasov', 'calmuc'];
@@ -40,36 +41,72 @@ export function bandLink(band: string, link?: string): string {
   return `https://duckduckgo.com/?q=${encodeURIComponent(`${band} band official`)}`;
 }
 
+/**
+ * Build a day's slots with the running-order patches applied: a stage running
+ * late shifts every set on it that hadn't started when the slip was logged, a
+ * per-set nudge overrides that, and a cancelled set stays in the grid (struck
+ * through) so the pick and its history survive being un-cancelled.
+ */
 export function buildSlots(day: FestivalDay): SetSlot[] {
   const slots: SetSlot[] = [];
   for (const stageId of STAGE_ORDER) {
     for (const raw of day.sets[stageId]) {
+      const id = slotId(day.id, stageId, raw.band);
+      const start = toMinutes(raw.start);
+      const shift = shiftFor(day.id, stageId, id, start);
       slots.push({
-        id: slotId(day.id, stageId, raw.band),
+        id,
         band: raw.band,
         stage: STAGES[stageId],
         dayId: day.id,
-        startLabel: raw.start,
-        endLabel: raw.end,
+        startLabel: shift ? minutesToLabel(start + shift) : raw.start,
+        endLabel: shift ? minutesToLabel(toMinutes(raw.end) + shift) : raw.end,
         link: bandLink(raw.band, raw.link),
         listen: bandListen(raw.band),
         genre: bandGenre(raw.band),
-        start: toMinutes(raw.start),
-        end: toMinutes(raw.end),
-        startAt: festivalInstant(day.date, raw.start),
-        endAt: festivalInstant(day.date, raw.end),
+        start: start + shift,
+        end: toMinutes(raw.end) + shift,
+        startAt: new Date(festivalInstant(day.date, raw.start).getTime() + shift * 60_000),
+        endAt: new Date(festivalInstant(day.date, raw.end).getTime() + shift * 60_000),
+        shift,
+        cancelled: isCancelled(id),
       });
     }
   }
   return slots;
 }
 
+/**
+ * The whole bill, patches included. Rebuilt **in place** whenever a patch
+ * lands: every module imports this binding directly, and the share-link codec
+ * indexes picks by position in it, so the array's identity, order and length
+ * all have to survive a rebuild — only the contents change.
+ */
 export const ALL_SLOTS: SetSlot[] = DAYS.flatMap(buildSlots);
 
-const slotById = new Map(ALL_SLOTS.map((s) => [s.id, s]));
+let slotById = new Map(ALL_SLOTS.map((s) => [s.id, s]));
+
 export function getSlot(id: string): SetSlot | undefined {
   return slotById.get(id);
 }
+
+const scheduleListeners = new Set<() => void>();
+
+/** Be told when the running order itself changes under you. */
+export function subscribeSchedule(fn: () => void): () => void {
+  scheduleListeners.add(fn);
+  return () => scheduleListeners.delete(fn);
+}
+
+function rebuildSchedule(): void {
+  const fresh = DAYS.flatMap(buildSlots);
+  ALL_SLOTS.length = 0;
+  ALL_SLOTS.push(...fresh);
+  slotById = new Map(ALL_SLOTS.map((s) => [s.id, s]));
+  scheduleListeners.forEach((fn) => fn());
+}
+
+subscribeDelays(rebuildSchedule);
 
 export function overlaps(a: SetSlot, b: SetSlot): boolean {
   return a.start < b.end && b.start < a.end;

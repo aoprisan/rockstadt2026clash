@@ -117,14 +117,17 @@ export function friendsForSlot(slotId: string): Friend[] {
 function friendSlots(f: Friend, dayId?: string): SetSlot[] {
   return f.ids
     .map((id) => getSlot(id))
-    .filter((s): s is SetSlot => Boolean(s) && (!dayId || s!.dayId === dayId));
+    .filter((s): s is SetSlot => Boolean(s) && (!dayId || s!.dayId === dayId))
+    // Nobody is meeting anybody at a set that got pulled.
+    .filter((s) => !s.cancelled);
 }
 
 function mySlots(dayId?: string): SetSlot[] {
   return selection
     .ids()
     .map((id) => getSlot(id))
-    .filter((s): s is SetSlot => Boolean(s) && (!dayId || s!.dayId === dayId));
+    .filter((s): s is SetSlot => Boolean(s) && (!dayId || s!.dayId === dayId))
+    .filter((s) => !s.cancelled);
 }
 
 export interface TogetherSet {

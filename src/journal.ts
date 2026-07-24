@@ -118,7 +118,10 @@ function pickedSlots(): SetSlot[] {
   return selection
     .ids()
     .map((id) => getSlot(id))
-    .filter((s): s is SetSlot => Boolean(s));
+    // A set that was pulled from the running order never happened; there is
+    // nothing to rate and it shouldn't nag from the journal dot.
+    .filter((s): s is SetSlot => Boolean(s))
+    .filter((s) => !s.cancelled);
 }
 
 /** Picked sets that have finished by `nowMs`, oldest first. */

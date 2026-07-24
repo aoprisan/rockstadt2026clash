@@ -11,6 +11,7 @@ import {
 import { boardBy, dayTypeFor, EXTRAS, STOP_TOWN, WALK_MIN } from './buses';
 import { selection } from './store';
 import { tasteProfile } from './taste';
+import { currentWeek } from './stamina';
 
 /**
  * "Ask Claude": turn the user's picks — plus every clash, tight walk and the
@@ -24,7 +25,7 @@ import { tasteProfile } from './taste';
  */
 
 /** Where the prompt should steer the assistant. */
-export type AskFocus = 'all' | 'similar' | 'optimise' | 'clashes' | 'buses' | 'food';
+export type AskFocus = 'all' | 'similar' | 'optimise' | 'clashes' | 'buses' | 'food' | 'stamina';
 
 const STAGE_ORDER: StageId[] = ['rugina', 'brasov', 'calmuc'];
 
@@ -35,6 +36,7 @@ const FOCUS_LABELS: Record<AskFocus, string> = {
   clashes: '⚔ Resolve clashes',
   buses: '🚌 Buses',
   food: '🍽 When to eat',
+  stamina: '🔋 Survive the week',
 };
 
 /** How early before the first set we aim to be at the gate. */
@@ -46,7 +48,8 @@ function pickedSlots(): SetSlot[] {
   return selection
     .ids()
     .map((id) => getSlot(id))
-    .filter((s): s is SetSlot => Boolean(s));
+    .filter((s): s is SetSlot => Boolean(s))
+    .filter((s) => !s.cancelled);
 }
 
 /** Short stage name without the trailing "Stage" for compact prompt lines. */
@@ -174,6 +177,8 @@ function askSection(focus: AskFocus, hasPicks: boolean): string {
     'Using the bus facts and my per-day arrival/departure below, tell me which bus to catch to reach the gate comfortably before my first set each day, and my best option home after the last set (the night line included). Call out any day where the first set is early or the last set runs so late that only the night buses work.';
   const food =
     'Using my per-day plan and its free gaps below, tell me the best windows to grab food and drink without missing anything I care about — especially around my ★ must-sees — and whether any day is so back-to-back that I should eat before the first set or after the last instead.';
+  const stamina =
+    'Five days of this is a physical problem, not just a scheduling one. Using the stamina model in the section above — hours on site, sleep the running order actually leaves me, heat and the ride home — tell me which specific sets to drop to make it to the last night in one piece, which days to arrive later on, and where to eat and drink. Argue with the model where you think it is wrong, and never propose dropping a ★ must-see.';
 
   switch (focus) {
     case 'similar':
@@ -186,6 +191,8 @@ function askSection(focus: AskFocus, hasPicks: boolean): string {
       return buses;
     case 'food':
       return food;
+    case 'stamina':
+      return stamina;
     case 'all':
     default:
       return [
@@ -195,8 +202,48 @@ function askSection(focus: AskFocus, hasPicks: boolean): string {
         `3. **Resolve clashes.** ${clashes}`,
         `4. **Buses.** ${buses}`,
         `5. **When to eat.** ${food}`,
+        `6. **Surviving five days.** ${stamina}`,
       ].join('\n');
   }
+}
+
+/**
+ * The stamina model's read on the week, so the assistant argues from the same
+ * numbers the app does: load, sleep, heat and the ride home, day by day.
+ */
+function staminaSection(): string {
+  const week = currentWeek();
+  if (!week.hasPlan) return '';
+  const lines = [
+    '## My stamina model (computed on device from this plan, the forecast and the bus timetable)',
+    'A "reserve" battery starts at 100% and drains with hours on site, walking, the small hours, heat and travel; each night repays it with whatever sleep the running order leaves, discounted for the part that lands in daylight.',
+  ];
+  for (const d of week.days) {
+    if (d.sets === 0 || d.arrive == null || d.depart == null) continue;
+    const bits = [
+      `on site ${minutesToLabel(d.arrive)}–${minutesToLabel(d.depart)} (${fmtDuration(d.siteMinutes)})`,
+      `${d.sets} sets`,
+      `load ${d.strain}/100`,
+      `reserve ${d.reserveStart}% → ${d.reserveEnd}%`,
+    ];
+    if (d.sleepEffective != null) {
+      bits.push(`sleep after: ~${fmtDuration(Math.round(d.sleepEffective * 60))} of real rest`);
+    }
+    if (d.climate.hasData && d.climate.peakFeels != null) {
+      bits.push(`feels up to ${Math.round(d.climate.peakFeels)}°`);
+    }
+    if (d.travel) bits.push(`travel ${fmtDuration(d.travel.out + d.travel.home)} door to door`);
+    lines.push(`- **${d.day.label}** — ${bits.join(' · ')}`);
+  }
+  const flags = week.interventions.filter((i) => i.severity !== 'tip');
+  if (flags.length) {
+    lines.push('', 'Flagged by the model:');
+    for (const f of flags.slice(0, 10)) {
+      const day = DAYS.find((x) => x.id === f.dayId)?.label ?? '';
+      lines.push(`- [${f.severity}] ${day}: ${f.title} — ${f.detail}`);
+    }
+  }
+  return lines.join('\n');
 }
 
 /** Build the full prompt for the given focus from the current selection. */
@@ -240,6 +287,7 @@ export function buildPrompt(focus: AskFocus): string {
     lines.push(
       `\n## Free gaps in my picks (for meal breaks)\n${mealLines(picks).join('\n')}`,
     );
+    lines.push(`\n${staminaSection()}`);
   } else {
     lines.push(`\n## My current picks\nI haven't picked anything yet.`);
     lines.push(`\n${busFacts()}`);

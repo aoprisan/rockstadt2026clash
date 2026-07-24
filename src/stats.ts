@@ -18,7 +18,9 @@ function pickedSlots(): SetSlot[] {
   return selection
     .ids()
     .map((id) => getSlot(id))
-    .filter((s): s is SetSlot => Boolean(s));
+    .filter((s): s is SetSlot => Boolean(s))
+    // A cancelled set is time you won't spend and music you won't hear.
+    .filter((s) => !s.cancelled);
 }
 
 /** Total length of the union of a day's intervals (double-booked time once). */

@@ -71,11 +71,16 @@ export interface DayPlan {
   starredKept: number;
 }
 
-function pickedSlots(): SetSlot[] {
-  return selection
-    .ids()
+/**
+ * The picks a plan is built from. Defaults to the live selection; callers can
+ * pass an explicit id set to plan a *hypothetical* line-up (the stamina engine
+ * scores "what if I dropped this set?" without touching the real picks).
+ */
+function pickedSlots(picks?: ReadonlySet<string>): SetSlot[] {
+  return [...(picks ?? selection.ids())]
     .map((id) => getSlot(id))
-    .filter((s): s is SetSlot => Boolean(s));
+    .filter((s): s is SetSlot => Boolean(s))
+    .filter((s) => !s.cancelled);
 }
 
 /* ---------- the optimiser ---------- */
@@ -85,11 +90,14 @@ function transitionLateBy(a: SetSlot, b: SetSlot): number {
   return Math.max(0, walkMinutes(a.stage.id, b.stage.id) - (b.start - a.end));
 }
 
-/** Compute the optimal running order for one day, or null with no picks there. */
-export function planDay(dayId: string): DayPlan | null {
+/**
+ * Compute the optimal running order for one day, or null with no picks there.
+ * Pass `pool` to plan a hypothetical line-up instead of the saved selection.
+ */
+export function planDay(dayId: string, pool?: ReadonlySet<string>): DayPlan | null {
   const day = DAYS.find((d) => d.id === dayId);
   if (!day) return null;
-  const rawPicks = pickedSlots().filter((s) => s.dayId === dayId);
+  const rawPicks = pickedSlots(pool).filter((s) => s.dayId === dayId);
   if (rawPicks.length === 0) return null;
 
   // The user's clash-duel calls come first: benched losers leave the pool and
@@ -137,8 +145,9 @@ export function planDay(dayId: string): DayPlan | null {
 
   // Free-gap suggestions come from the day's unpicked sets, scored against the
   // taste profile of everything the user picked across the whole festival.
-  const profile = tasteProfile(pickedSlots());
+  const profile = tasteProfile(pickedSlots(pool));
   const daySlots = buildSlots(day);
+  const isPicked = (id: string): boolean => (pool ? pool.has(id) : selection.has(id));
 
   const entries: PlanEntry[] = [];
   let watchMinutes = 0;
@@ -164,7 +173,7 @@ export function planDay(dayId: string): DayPlan | null {
         const suggestions = daySlots
           .filter(
             (c) =>
-              !selection.has(c.id) &&
+              !isPicked(c.id) &&
               c.start >= prev.end + (c.stage.id === prev.stage.id ? 0 : walkMinutes(prev.stage.id, c.stage.id)) &&
               c.end + (c.stage.id === slot.stage.id ? 0 : walkMinutes(c.stage.id, slot.stage.id)) <= slot.start,
           )

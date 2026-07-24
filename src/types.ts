@@ -51,4 +51,8 @@ export interface SetSlot {
   startAt: Date;
   /** Absolute instant the set ends, in real (UTC) time. */
   endAt: Date;
+  /** Minutes this set has been shifted by a running-order patch (0 = on time). */
+  shift: number;
+  /** True when the set has been marked as not happening at all. */
+  cancelled: boolean;
 }

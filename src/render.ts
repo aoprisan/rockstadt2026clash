@@ -9,6 +9,7 @@ import {
   getSlot,
   festivalInstant,
   minutesToLabel,
+  subscribeSchedule,
   toMinutes,
   ALL_SLOTS,
 } from './schedule';
@@ -57,6 +58,10 @@ import {
   unratedCount,
 } from './journal';
 import * as notify from './notify';
+import { openStamina } from './stamina-panel';
+import { reserveTone, weekBattery } from './stamina';
+import { openDelays } from './delays-panel';
+import { patchCount } from './delays';
 
 // Vertical scale of the timeline. Sized so even the shortest sets (45 min) are
 // tall enough to hold their full content — a three-line band name plus the
@@ -97,7 +102,10 @@ function selectedSlots(): SetSlot[] {
   return selection
     .ids()
     .map((id) => getSlot(id))
-    .filter((s): s is SetSlot => Boolean(s));
+    // Cancelled sets stay picked (un-cancel and they come back) but they can no
+    // longer clash with anything — they aren't happening.
+    .filter((s): s is SetSlot => Boolean(s))
+    .filter((s) => !s.cancelled);
 }
 
 export function mount(root: HTMLElement): void {
@@ -148,6 +156,16 @@ export function mount(root: HTMLElement): void {
   subscribeJournal(() => {
     renderContent(main);
     updateJournalDot();
+  });
+
+  // A running-order patch re-times the whole app: the grid, the live bar, the
+  // header counts and the banner. (The reminder scheduler re-arms itself off
+  // the same signal — see notify.init.)
+  subscribeSchedule(() => {
+    renderContent(main);
+    renderLiveBar();
+    refreshChrome();
+    renderUpdateBanner();
   });
 
   // Per-set weather icons need the hourly forecast; load it in the background
@@ -261,6 +279,8 @@ function renderToolbar(): HTMLElement {
   panel.appendChild(renderCalendarMenu());
   panel.appendChild(renderPicksLinkButton());
   panel.appendChild(renderCrewButton());
+  panel.appendChild(renderStaminaButton());
+  panel.appendChild(renderDelaysButton());
 
   // Right group: options disclosure + clear all.
   const actions = el('div', 'tb-group tb-actions');
@@ -649,6 +669,24 @@ function refreshChrome(): void {
       );
     }
     stats.appendChild(clashBadge);
+
+    // The week's battery: the lowest reading the stamina model projects across
+    // the five days. Tapping it opens the panel that explains the number.
+    const battery = weekBattery();
+    if (battery.hasPlan) {
+      const tone = reserveTone(battery.lowest);
+      const btn = el('button', `stat stat-battery is-${tone}`);
+      btn.type = 'button';
+      btn.setAttribute(
+        'aria-label',
+        `Stamina: your lowest projected reserve is ${battery.lowest} per cent. Open the stamina panel.`,
+      );
+      btn.title = 'Projected reserve at your lowest point — tap for the five-day read';
+      btn.appendChild(el('span', 'stat-num', `${battery.lowest}%`));
+      btn.appendChild(el('span', 'stat-label', 'at the low'));
+      btn.addEventListener('click', () => openStamina());
+      stats.appendChild(btn);
+    }
   }
 }
 
@@ -1229,6 +1267,8 @@ function renderSlot(
   if (isClash) node.classList.add('clashing');
   if (isTight) node.classList.add('tight');
   if (benchedBy) node.classList.add('benched');
+  if (slot.cancelled) node.classList.add('cancelled');
+  else if (slot.shift) node.classList.add('shifted');
 
   node.setAttribute(
     'aria-label',
@@ -1239,6 +1279,12 @@ function renderSlot(
     }${benchedBy ? `, benched — you chose ${benchedBy.band} in the clash duel` : ''}${
       isSplit ? ', part of a clash-duel split' : ''
     }${isTight ? ', tight walk from your previous pick' : ''}${
+      slot.cancelled ? ', cancelled — not happening' : ''
+    }${
+      slot.shift
+        ? `, running ${Math.abs(slot.shift)} minutes ${slot.shift > 0 ? 'late' : 'early'}`
+        : ''
+    }${
       friends.length ? `, friends going: ${friends.map((f) => f.name).join(', ')}` : ''
     }`,
   );
@@ -1252,6 +1298,25 @@ function renderSlot(
   const timeRow = el('div', 'set-timerow');
   const time = el('span', 'set-time', `${slot.startLabel}–${slot.endLabel}`);
   timeRow.appendChild(time);
+
+  // A patched set says so on its face: the grid has already moved it, and a
+  // time that silently disagrees with the poster is worse than no time at all.
+  if (slot.cancelled) {
+    const chip = el('span', 'set-patch is-off', '✕ cancelled');
+    chip.title = 'Marked as not happening. Un-mark it in ⏱ Running order.';
+    timeRow.appendChild(chip);
+  } else if (slot.shift) {
+    const chip = el(
+      'span',
+      'set-patch',
+      `⏱ ${slot.shift > 0 ? '+' : '−'}${Math.abs(slot.shift)}m`,
+    );
+    chip.title =
+      slot.shift > 0
+        ? `Running ${slot.shift}m late — the poster said ${minutesToLabel(slot.start - slot.shift)}`
+        : `Running ${-slot.shift}m early — the poster said ${minutesToLabel(slot.start - slot.shift)}`;
+    timeRow.appendChild(chip);
+  }
 
   // Forecast for the hours this set runs — one or more icons depending on how
   // long the set is and whether the sky changes across it, plus the peak rain
@@ -1381,6 +1446,7 @@ function renderUpdateBanner(): void {
   const host = document.getElementById('update-banner');
   if (!host) return;
   host.innerHTML = '';
+  renderPatchBanner(host);
 
   const seen = loadSeenVersion();
   // First visit ever: quietly record the version, no banner.
@@ -1408,6 +1474,30 @@ function renderUpdateBanner(): void {
     renderUpdateBanner();
   });
   bar.appendChild(dismiss);
+  host.appendChild(bar);
+}
+
+/**
+ * Once anything has been patched, every time in the app disagrees with the
+ * printed poster — so say so, permanently and unmissably, with the way back.
+ */
+function renderPatchBanner(host: HTMLElement): void {
+  const count = patchCount();
+  if (count === 0) return;
+  const bar = el('div', 'update-banner is-patched');
+  bar.setAttribute('role', 'status');
+  bar.appendChild(el('span', 'update-banner-icon', '⏱'));
+  bar.appendChild(
+    el(
+      'span',
+      'update-banner-text',
+      `${count} running-order patch${count === 1 ? '' : 'es'} applied — times below are yours, not the poster's.`,
+    ),
+  );
+  const open = el('button', 'update-banner-action', 'Review');
+  open.type = 'button';
+  open.addEventListener('click', () => openDelays(activeDayId));
+  bar.appendChild(open);
   host.appendChild(bar);
 }
 
@@ -1737,6 +1827,22 @@ function renderCrewButton(): HTMLElement {
   const btn = el('button', 'btn-ghost btn-crew', '👥 Crew');
   btn.title = 'Overlay your friends’ picks: shared sets and meet-up windows';
   btn.addEventListener('click', () => openCrew());
+  return btn;
+}
+
+/* ---------- running-order patches ---------- */
+function renderDelaysButton(): HTMLElement {
+  const btn = el('button', 'btn-ghost btn-delays', '⏱ Running order');
+  btn.title = 'Log a stage running late or a band pulled, and re-time the whole app';
+  btn.addEventListener('click', () => openDelays(activeDayId));
+  return btn;
+}
+
+/* ---------- stamina ---------- */
+function renderStaminaButton(): HTMLElement {
+  const btn = el('button', 'btn-ghost btn-stamina', '🔋 Stamina');
+  btn.title = 'Five-day read on sleep, heat, walking and the last bus — and what to cut';
+  btn.addEventListener('click', () => openStamina());
   return btn;
 }
 
