@@ -1,0 +1,345 @@
+import { DAYS, FESTIVAL, STAGES } from './data';
+import type { SetSlot, StageId } from './types';
+import {
+  ALL_SLOTS,
+  findClashes,
+  findTightTransitions,
+  fmtDuration,
+  getSlot,
+} from './schedule';
+import { selection } from './store';
+import { tasteProfile } from './taste';
+
+/**
+ * "Ask Claude": turn the user's picks — plus every clash, tight walk and the
+ * rest of the bill — into a single, copy-paste-ready prompt they can hand to
+ * Claude (or any assistant) to get help *discovering similar bands*,
+ * *optimising their day* or *resolving conflicts*.
+ *
+ * The app has no backend and no API key, so nothing is sent anywhere: we build
+ * the prompt entirely client-side, drop it in a dialog with a copy button, and
+ * offer a one-tap link that opens claude.ai with the prompt prefilled.
+ */
+
+/** Where the prompt should steer the assistant. */
+export type AskFocus = 'all' | 'similar' | 'optimise' | 'clashes';
+
+const STAGE_ORDER: StageId[] = ['rugina', 'brasov', 'calmuc'];
+
+const FOCUS_LABELS: Record<AskFocus, string> = {
+  all: '✨ Everything',
+  similar: '🎸 Similar bands',
+  optimise: '🧭 Optimise my day',
+  clashes: '⚔ Resolve clashes',
+};
+
+function pickedSlots(): SetSlot[] {
+  return selection
+    .ids()
+    .map((id) => getSlot(id))
+    .filter((s): s is SetSlot => Boolean(s));
+}
+
+/** Short stage name without the trailing "Stage" for compact prompt lines. */
+function shortStage(id: StageId): string {
+  return STAGES[id].name.replace(' Stage', '');
+}
+
+function slotLine(s: SetSlot, starred = false): string {
+  const genre = s.genre ? ` · ${s.genre}` : '';
+  const star = starred ? ' ★ must-see' : '';
+  return `- ${s.startLabel}–${s.endLabel} · ${s.band} · ${shortStage(s.stage.id)}${genre}${star}`;
+}
+
+/** Day-by-day list, one section per day that has any slots in `slots`. */
+function byDaySections(slots: SetSlot[], line: (s: SetSlot) => string): string[] {
+  const out: string[] = [];
+  for (const day of DAYS) {
+    const daySlots = slots
+      .filter((s) => s.dayId === day.id)
+      .sort((a, b) => a.start - b.start || STAGE_ORDER.indexOf(a.stage.id) - STAGE_ORDER.indexOf(b.stage.id));
+    if (daySlots.length === 0) continue;
+    out.push(`${day.label} (${day.date}):\n${daySlots.map(line).join('\n')}`);
+  }
+  return out;
+}
+
+/** The user's dominant genres, most distinctive first, as a short phrase. */
+function tasteSummary(picks: SetSlot[]): string {
+  const profile = tasteProfile(picks);
+  const top = [...profile.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([t]) => t);
+  return top.join(', ');
+}
+
+function clashLines(picks: SetSlot[]): string[] {
+  return findClashes(picks).map((c) => {
+    const day = DAYS.find((d) => d.id === c.a.dayId)?.label ?? c.a.dayId;
+    return `- ${day}: ${c.a.band} (${c.a.startLabel}–${c.a.endLabel}, ${shortStage(c.a.stage.id)}) overlaps ${c.b.band} (${c.b.startLabel}–${c.b.endLabel}, ${shortStage(c.b.stage.id)}) by ${fmtDuration(c.minutes)}`;
+  });
+}
+
+function tightLines(picks: SetSlot[]): string[] {
+  return findTightTransitions(picks).map((t) => {
+    const day = DAYS.find((d) => d.id === t.from.dayId)?.label ?? t.from.dayId;
+    const verdict =
+      t.slack < 0
+        ? `you'd miss the first ~${-t.slack}m of ${t.to.band}`
+        : `only ${t.slack}m to spare`;
+    return `- ${day}: ${t.from.band} (ends ${t.from.endLabel}, ${shortStage(t.from.stage.id)}) → ${t.to.band} (starts ${t.to.startLabel}, ${shortStage(t.to.stage.id)}) — ~${t.walk}m walk, ${t.gap}m gap, ${verdict}`;
+  });
+}
+
+/** The mode-specific "what I'd like from you" section. */
+function askSection(focus: AskFocus, hasPicks: boolean): string {
+  const similar = hasPicks
+    ? 'Suggest other bands **from the un-picked line-up above** that fit my taste, given the genres and artists I already picked. Rank them best-first, say in a few words why each fits, and note whether it drops into a free gap or clashes with something I already have.'
+    : 'I haven’t picked anything yet. From the line-up above, suggest a strong starter set of bands to build a plan around, grouped by day, with a one-line reason each.';
+  const optimise =
+    'Help me turn my picks into the best realistic plan for each day: which sets to prioritise, where a pick isn’t worth a cross-site walk, and which free gaps are worth filling. Assume I can’t be in two places at once and it takes a few minutes to walk between stages.';
+  const clashes =
+    'Help me resolve the clashes and tight walks above. For each overlapping pair, recommend which to see (or how to split the set), based on how well each fits my taste and how much overlap there is.';
+
+  switch (focus) {
+    case 'similar':
+      return similar;
+    case 'optimise':
+      return optimise;
+    case 'clashes':
+      return clashes;
+    case 'all':
+    default:
+      return [
+        'Please help me with all three of these:',
+        `1. **Similar bands.** ${similar}`,
+        `2. **Optimise my day.** ${optimise}`,
+        `3. **Resolve clashes.** ${clashes}`,
+      ].join('\n');
+  }
+}
+
+/** Build the full prompt for the given focus from the current selection. */
+export function buildPrompt(focus: AskFocus): string {
+  const picks = pickedSlots();
+  const starred = new Set(selection.starredIds());
+  const unpicked = ALL_SLOTS.filter((s) => !selection.has(s.id));
+
+  const lines: string[] = [];
+
+  lines.push(
+    `I'm planning which bands to see at ${FESTIVAL.name} (${FESTIVAL.dates}, ${FESTIVAL.location}) — a metal & rock festival with three stages running in parallel (${STAGE_ORDER.map(shortStage).join(', ')}). Sets on different stages often overlap, and there's a short walk between stages. Help me plan.`,
+  );
+
+  if (picks.length > 0) {
+    const starCount = starred.size;
+    lines.push(
+      `\n## My current picks (${picks.length} set${picks.length === 1 ? '' : 's'}${starCount ? `, ${starCount} starred as must-see` : ''})\n` +
+        byDaySections(picks, (s) => slotLine(s, starred.has(s.id))).join('\n\n'),
+    );
+
+    const taste = tasteSummary(picks);
+    if (taste) lines.push(`\nMy taste, by the genres I picked most: ${taste}.`);
+
+    const clashes = clashLines(picks);
+    lines.push(
+      `\n## Clashes in my picks (overlapping sets I can't fully catch both of)\n` +
+        (clashes.length ? clashes.join('\n') : '- None — no two of my picks overlap.'),
+    );
+
+    const tight = tightLines(picks);
+    if (tight.length) {
+      lines.push(
+        `\n## Tight walks (back-to-back picks on different stages, little time to cross)\n` +
+          tight.join('\n'),
+      );
+    }
+  } else {
+    lines.push(`\n## My current picks\nI haven't picked anything yet.`);
+  }
+
+  lines.push(
+    `\n## The rest of the line-up I haven't picked (suggest additions that actually fit my schedule)\n` +
+      byDaySections(unpicked, (s) => slotLine(s)).join('\n\n'),
+  );
+
+  lines.push(`\n## What I'd like from you\n${askSection(focus, picks.length > 0)}`);
+  lines.push(
+    `\nKeep every suggestion to bands actually on the line-up above, reference the day, time and stage, and flag any new clash a suggestion would create.`,
+  );
+
+  return lines.join('\n');
+}
+
+/* ---------- clipboard + Claude hand-off ---------- */
+
+/** claude.ai prefills a new chat from `?q=`; keep the URL under a safe length. */
+const CLAUDE_MAX_QUERY = 6000;
+
+async function copyText(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    /* fall through to the legacy path */
+  }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
+/* ---------- dialog ---------- */
+
+let dialog: HTMLDialogElement | null = null;
+let focus: AskFocus = 'all';
+
+const el = <K extends keyof HTMLElementTagNameMap>(
+  tag: K,
+  cls?: string,
+  text?: string,
+): HTMLElementTagNameMap[K] => {
+  const node = document.createElement(tag);
+  if (cls) node.className = cls;
+  if (text != null) node.textContent = text;
+  return node;
+};
+
+export function openAskClaude(): void {
+  focus = 'all';
+  if (!dialog) dialog = buildDialog();
+  repaint();
+  if (typeof dialog.showModal === 'function') dialog.showModal();
+  else dialog.setAttribute('open', '');
+}
+
+function buildDialog(): HTMLDialogElement {
+  const d = document.createElement('dialog');
+  d.className = 'planner ask';
+  d.setAttribute('aria-label', 'Ask Claude to help with your picks');
+
+  const card = el('div', 'planner-card');
+
+  const head = el('div', 'planner-head');
+  head.appendChild(el('h2', 'planner-title', '🤖 Ask Claude'));
+  const close = el('button', 'planner-close', '✕');
+  close.type = 'button';
+  close.setAttribute('aria-label', 'Close');
+  close.addEventListener('click', () => d.close());
+  head.appendChild(close);
+  card.appendChild(head);
+
+  const intro = el(
+    'p',
+    'ask-intro',
+    'Build a ready-to-paste prompt from your picks — clashes, tight walks and the rest of the bill included — then copy it or open it straight in Claude. Nothing leaves your device until you do.',
+  );
+  card.appendChild(intro);
+
+  const tabs = el('div', 'planner-tabs ask-tabs');
+  tabs.id = 'ask-tabs';
+  card.appendChild(tabs);
+
+  const body = el('div', 'planner-body');
+  body.id = 'ask-body';
+  card.appendChild(body);
+
+  d.appendChild(card);
+  d.addEventListener('click', (e) => {
+    if (e.target === d) d.close();
+  });
+  document.body.appendChild(d);
+  return d;
+}
+
+function repaint(): void {
+  if (!dialog) return;
+  const tabs = dialog.querySelector('#ask-tabs');
+  const body = dialog.querySelector('#ask-body');
+  if (!tabs || !body) return;
+
+  tabs.innerHTML = '';
+  (Object.keys(FOCUS_LABELS) as AskFocus[]).forEach((f) => {
+    const btn = el('button', 'planner-tab', FOCUS_LABELS[f]);
+    btn.type = 'button';
+    if (f === focus) btn.classList.add('active');
+    btn.addEventListener('click', () => {
+      focus = f;
+      repaint();
+    });
+    tabs.appendChild(btn);
+  });
+
+  body.innerHTML = '';
+
+  if (selection.size() === 0) {
+    body.appendChild(
+      el(
+        'p',
+        'ask-empty',
+        'Tip: pick a few bands on the timeline first and Claude can tailor its suggestions to your taste. You can still generate a “what should I start with?” prompt below.',
+      ),
+    );
+  }
+
+  const prompt = buildPrompt(focus);
+
+  const ta = el('textarea', 'ask-textarea');
+  ta.value = prompt;
+  ta.rows = 12;
+  ta.spellcheck = false;
+  ta.setAttribute('aria-label', 'The prompt to send to Claude — edit it if you like');
+  body.appendChild(ta);
+
+  const actions = el('div', 'ask-actions');
+
+  const copy = el('button', 'ask-btn ask-btn-primary', '📋 Copy prompt');
+  copy.type = 'button';
+  copy.addEventListener('click', () => {
+    void copyText(ta.value).then((ok) => {
+      copy.textContent = ok ? '✓ Copied' : '⚠ Copy failed — select & copy';
+      setTimeout(() => {
+        copy.textContent = '📋 Copy prompt';
+      }, 2200);
+    });
+  });
+  actions.appendChild(copy);
+
+  const open = el('button', 'ask-btn', '↗ Open in Claude');
+  open.type = 'button';
+  open.title = 'Copies the prompt, then opens claude.ai';
+  open.addEventListener('click', () => {
+    const text = ta.value;
+    void copyText(text);
+    // Prefill the chat when the prompt is short enough for a URL; otherwise
+    // open a blank chat — the prompt is already on the clipboard to paste.
+    const url =
+      text.length <= CLAUDE_MAX_QUERY
+        ? `https://claude.ai/new?q=${encodeURIComponent(text)}`
+        : 'https://claude.ai/new';
+    window.open(url, '_blank', 'noopener');
+  });
+  actions.appendChild(open);
+
+  body.appendChild(actions);
+
+  body.appendChild(
+    el(
+      'p',
+      'ask-hint',
+      'Claude works best when it can see the whole bill, so the prompt lists every set. Edit it above before copying if you want to narrow the ask.',
+    ),
+  );
+}
