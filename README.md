@@ -167,6 +167,21 @@ flags **clashes** — sets you've picked that overlap in time.
   still read in full, minus the weather notes.
 - **Installable & offline** — full PWA with a service worker (manifest, icons,
   offline caching) so it works on the festival grounds with patchy signal.
+- **Welcome guide** — a one-minute tour of what the app does and, more usefully,
+  which button opens each room: picking and clashes, the Pilot / Plan / Map /
+  Weather / Journal bar, and everything folded away under **Options**. Shows
+  itself once per device on the first visit (`ref2026.welcome.v1`) and is
+  reopenable from **❔ How this works** in the footer.
+- **Build stamp & force update** — the footer carries the exact build this
+  device is running: timestamp and commit hash, injected at build time by Vite's
+  `define` (see `vite.config.ts` / `src/build-info.ts`). Tapping it opens the
+  version panel with the build stamp and its age, the running-order data
+  version, the service worker's state, and two ways out: **Check for update**,
+  which asks the worker to re-check the server, and a two-tap **Force update**,
+  which unregisters every service worker, deletes every cache and reloads
+  against a cache-busted URL — for when an offline copy gets stuck on an old
+  build. Neither touches your picks, stars, crew, journal, patches or reminders;
+  they live in `localStorage` and survive both.
 
 ## Stages
 
