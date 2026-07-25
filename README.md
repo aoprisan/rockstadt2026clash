@@ -155,6 +155,16 @@ flags **clashes** — sets you've picked that overlap in time.
   API ever refuses them, so the forecast can't be lost to a variable name. The
   last result is cached in `localStorage`, so the panel still shows the most
   recent forecast offline on the festival grounds.
+- **Bag — the gate list, crossed with the forecast** — the festival's own
+  allowed and prohibited lists (**Options → 🎒 Bag**, or from the footer of the
+  site map) as a checklist rather than a poster. The six allowed items tick off
+  as you pack them and the ticks persist in `localStorage`, so the list survives
+  being closed on the way out the door. The same cached hourly forecast the
+  timeline uses decides which lines shout: the wettest day promotes the raincoat
+  — and makes the umbrella ban worth reading twice — peak UV promotes the
+  sunscreen, the hottest hour the sunglasses, and a cold small-hours reading
+  tells you to leave room for a layer. With no forecast on the device the lists
+  still read in full, minus the weather notes.
 - **Installable & offline** — full PWA with a service worker (manifest, icons,
   offline caching) so it works on the festival grounds with patchy signal.
 

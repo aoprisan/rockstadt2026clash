@@ -1,4 +1,5 @@
 import { FESTIVAL } from './data';
+import { openBag } from './bag';
 
 // Served from /public, resolved against the deploy base so it works on GitHub
 // Pages (/rockstadt2026clash/) and in local dev alike.
@@ -53,10 +54,27 @@ function buildDialog(): HTMLDialogElement {
 
   card.appendChild(viewport);
 
+  // Footer: the zoom hint, plus the other half of "what happens at the gate" —
+  // the bag list is what you need before you ever reach the site the map shows.
+  const foot = document.createElement('div');
+  foot.className = 'site-map-foot';
+
   const hint = document.createElement('p');
   hint.className = 'site-map-hint';
   hint.textContent = 'Pinch or scroll to zoom.';
-  card.appendChild(hint);
+  foot.appendChild(hint);
+
+  const bag = document.createElement('button');
+  bag.type = 'button';
+  bag.className = 'site-map-bag';
+  bag.textContent = '🎒 What you can bring →';
+  bag.addEventListener('click', () => {
+    d.close();
+    openBag();
+  });
+  foot.appendChild(bag);
+
+  card.appendChild(foot);
 
   d.appendChild(card);
 
