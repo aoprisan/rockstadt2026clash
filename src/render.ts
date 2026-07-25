@@ -42,6 +42,7 @@ import { sharePicksLink } from './picks-link';
 import { computeLive, fmtCountdown } from './live';
 import { computeStats } from './stats';
 import { openMap } from './map';
+import { openBag } from './bag';
 import {
   fmtMm,
   openWeather,
@@ -281,6 +282,7 @@ function renderToolbar(): HTMLElement {
   panel.appendChild(renderCrewButton());
   panel.appendChild(renderStaminaButton());
   panel.appendChild(renderDelaysButton());
+  panel.appendChild(renderBagButton());
 
   // Right group: options disclosure + clear all.
   const actions = el('div', 'tb-group tb-actions');
@@ -1843,6 +1845,14 @@ function renderStaminaButton(): HTMLElement {
   const btn = el('button', 'btn-ghost btn-stamina', '🔋 Stamina');
   btn.title = 'Five-day read on sleep, heat, walking and the last bus — and what to cut';
   btn.addEventListener('click', () => openStamina());
+  return btn;
+}
+
+/* ---------- gate list ---------- */
+function renderBagButton(): HTMLElement {
+  const btn = el('button', 'btn-ghost btn-bag', '🎒 Bag');
+  btn.title = 'What gets through the gate and what gets turned away — with the forecast folded in';
+  btn.addEventListener('click', () => openBag());
   return btn;
 }
 
