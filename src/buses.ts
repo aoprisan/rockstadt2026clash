@@ -109,20 +109,40 @@ export const EXTRAS = {
  * RATBV's full tariff list — urban *and* metropolitan, which is the category
  * the 210, the 220 and the night 211T all fall into — is sold through the
  * 24pay app, at the same price as the kiosk and with no surcharge for paying
- * this way. You attach a card once, then scan the QR sticker on the stop pole
- * or inside the vehicle and pick the fare.
+ * this way. You attach a card once, open the app's RATBV section and pick the
+ * fare — since 1 September 2023 there is no QR sticker to find on the pole and
+ * no NFC tag to hunt for inside the vehicle, the scan step having been dropped
+ * in the redesign.
  *
  * This belongs on the pre-flight list rather than the on-the-night one: the app
  * is Romanian-language and wants a card enrolled before it will sell you
  * anything, and 02:30 in a field with five thousand people also wanting to go
  * home is the wrong moment to find out your bank asks for a 3-D Secure
  * confirmation. Set it up at home; the mobile cashiers below stay the fallback.
+ *
+ * Hence store listings rather than the marketing homepage. We cannot open an
+ * already-installed 24pay ourselves and shouldn't pretend otherwise: a page has
+ * no way to ask whether an app is present (`getInstalledRelatedApps` only
+ * reports apps that claim *our* origin), and 24pay documents no URL scheme —
+ * `24pay://` isn't even a legal one, RFC 3986 schemes having to start with a
+ * letter. The store URLs are the deep links we know work: both are universal
+ * links, so a tap opens the App Store or Play app straight on the listing,
+ * which reads "Open" when 24pay is already installed. `url` stays on the app's
+ * own name so that if 24pay ever publishes apple-app-site-association and
+ * assetlinks.json, that tap starts opening the app with no change needed here.
  */
 export const TICKET_APP = {
   name: '24pay',
   url: 'https://www.24pay.ro/',
-  stores: 'Google Play, the App Store and Huawei AppGallery',
   cards: 'Visa or Mastercard',
+  /** The in-app section that sells Brașov fares after the 2023 redesign. */
+  section: 'RATBV',
+  stores: [
+    { label: 'App Store', url: 'https://apps.apple.com/ro/app/24pay/id1282006921' },
+    { label: 'Google Play', url: 'https://play.google.com/store/apps/details?id=com.twentyfourpay' },
+  ],
+  /** Carried by RATBV's announcements too, but with no stable listing URL to link. */
+  alsoOn: 'Huawei AppGallery',
 };
 
 /** True for a departure inside the supplemented 13:00–17:00 arrival window. */

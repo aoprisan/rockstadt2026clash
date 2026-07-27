@@ -118,7 +118,7 @@ function busFacts(): string {
     '## Getting there & back (RATBV city buses)',
     `- To the site: lines ${EXTRAS.daytime.lines.join(' and ')} from ${STOP_TOWN} (Brașov), roughly every ${door} min during the festival, with extra runs ${EXTRAS.inbound.from}–${EXTRAS.inbound.to}. Ride is ~13–14 min, then a ~${WALK_MIN} min walk from the Ghimbav Făgărașului stop to the gate.`,
     `- Home at night: line ${EXTRAS.night.line} (${EXTRAS.night.route}), boarding at the "${EXTRAS.night.boardStop}" stop, every ~${EXTRAS.night.headwayMin} min from ${EXTRAS.night.from} to ${EXTRAS.night.to}.`,
-    `- Bus tickets: the ${TICKET_APP.name} app (${TICKET_APP.url}) sells RATBV's full tariff list, metropolitan lines included, at kiosk price — attach a ${TICKET_APP.cards}, then scan the QR at the stop or in the vehicle. Romanian-language, so worth setting up before travelling. Otherwise mobile cashiers sell tickets at the "${EXTRAS.tickets.where}" stop between ${EXTRAS.tickets.from} and ${EXTRAS.tickets.to}.`,
+    `- Bus tickets: the ${TICKET_APP.name} app (${TICKET_APP.url}) sells RATBV's full tariff list, metropolitan lines included, at kiosk price — attach a ${TICKET_APP.cards}, then buy the fare from the app's "${TICKET_APP.section}" section; the QR scan that older guides mention was dropped in 2023. Romanian-language, so worth installing before travelling (${TICKET_APP.stores.map((s) => s.label).join(', ')}). Otherwise mobile cashiers sell tickets at the "${EXTRAS.tickets.where}" stop between ${EXTRAS.tickets.from} and ${EXTRAS.tickets.to}.`,
     '- Earlier in the evening, daytime 210/220 buses run back from Ghimbav until roughly 23:00–23:40.',
   ].join('\n');
 }
