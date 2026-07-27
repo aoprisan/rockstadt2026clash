@@ -63,6 +63,8 @@ import { openStamina } from './stamina-panel';
 import { reserveTone, weekBattery } from './stamina';
 import { openDelays } from './delays-panel';
 import { patchCount } from './delays';
+import { openSetlist } from './setlist-panel';
+import { bandSetlist } from './setlists';
 
 // Vertical scale of the timeline. Sized so even the shortest sets (45 min) are
 // tall enough to hold their full content — a three-line band name plus the
@@ -1454,6 +1456,31 @@ function renderSlot(
   listen.title = `Listen to ${slot.band}`;
   listen.addEventListener('click', (e) => e.stopPropagation());
   actions.appendChild(listen);
+
+  // "What did they play last time?" — the pill is on every set, but it only
+  // advertises a song count when we actually have a transcribed gig; otherwise
+  // it opens the panel that hands off to setlist.fm.
+  const known = bandSetlist(slot.band);
+  const setlistPill = el('button', 'set-pill set-setlist');
+  setlistPill.type = 'button';
+  setlistPill.appendChild(el('span', 'set-pill-icon', '♫'));
+  if (known) {
+    setlistPill.classList.add('is-known');
+    setlistPill.appendChild(el('span', 'set-setlist-count', String(known.songs.length)));
+    setlistPill.setAttribute(
+      'aria-label',
+      `Last known setlist for ${slot.band}, ${known.songs.length} songs`,
+    );
+    setlistPill.title = `Last known setlist — ${known.songs.length} songs`;
+  } else {
+    setlistPill.setAttribute('aria-label', `Find a setlist for ${slot.band}`);
+    setlistPill.title = 'No setlist on file — look it up on setlist.fm';
+  }
+  setlistPill.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openSetlist(slot.band);
+  });
+  actions.appendChild(setlistPill);
 
   const link = el('a', 'set-pill set-link');
   link.appendChild(el('span', 'set-link-label', 'Info'));

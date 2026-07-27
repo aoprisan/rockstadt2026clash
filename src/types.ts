@@ -23,6 +23,27 @@ export interface BandMeta {
   listen?: string;
 }
 
+/**
+ * The most recent live set we have a documented song list for, keyed by band
+ * name in setlists.ts. It is a record of one specific gig, not a prediction:
+ * the date and venue are part of the data precisely so the reader can judge how
+ * stale it is.
+ */
+export interface LastSetlist {
+  /** ISO date of the gig, when known. Omitted if we could only pin the event. */
+  date?: string;
+  /** Festival or tour-stop name, e.g. "Hellfest 2026". */
+  event?: string;
+  /** Venue, e.g. "Val de Moine (Altar Stage)". */
+  venue?: string;
+  /** City and ISO country code, e.g. "Clisson, FR". */
+  city?: string;
+  /** Songs in the order played. Encores are not distinguished. */
+  songs: string[];
+  /** Where the song list came from, so any entry can be checked. */
+  source: string;
+}
+
 export interface FestivalDay {
   id: string;
   label: string;
