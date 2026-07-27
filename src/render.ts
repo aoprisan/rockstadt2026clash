@@ -1128,9 +1128,20 @@ function renderBuses(day: FestivalDay): HTMLElement {
   app.appendChild(appLink);
   app.appendChild(
     document.createTextNode(
-      ` sells RATBV's whole tariff list, metropolitan lines included, at kiosk price with no surcharge — attach a ${buses.TICKET_APP.cards} once, then scan the QR on the stop pole or in the vehicle and pick the fare. It's on ${buses.TICKET_APP.stores}, in Romanian, so set it up at home rather than in the queue.`,
+      ` sells RATBV's whole tariff list, metropolitan lines included, at kiosk price with no surcharge — attach a ${buses.TICKET_APP.cards} once, then open the ${buses.TICKET_APP.section} section and pick the fare, no QR to hunt for. It's in Romanian, so install it at home rather than in the queue: `,
     ),
   );
+  // Straight to the listings: these are universal links, so on a phone they open
+  // the store app itself, showing "Open" for anyone who already has 24pay.
+  buses.TICKET_APP.stores.forEach((store, i) => {
+    if (i) app.appendChild(document.createTextNode(' · '));
+    const storeLink = el('a', 'bus-src', store.label);
+    storeLink.href = store.url;
+    storeLink.target = '_blank';
+    storeLink.rel = 'noopener noreferrer';
+    app.appendChild(storeLink);
+  });
+  app.appendChild(document.createTextNode(`, also on ${buses.TICKET_APP.alsoOn}.`));
   night.appendChild(app);
 
   const tickets = el('p', 'bus-night-note bus-tickets');
