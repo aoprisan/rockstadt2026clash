@@ -4828,3 +4828,179 @@ button.bag-row {
   padding: 9px;
   cursor: pointer;
 }
+
+/* ---------- setlist pill ---------- */
+.set-setlist {
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+/* Without a transcribed gig the pill is present but recessive — it is an
+   offer to go looking, not a promise that there is something to read. */
+.set-setlist:not(.is-known) {
+  opacity: 0.55;
+}
+.set-setlist-count {
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+/* ---------- setlist dialog ---------- */
+.setlist {
+  border: none;
+  background: transparent;
+  padding: 0;
+  width: calc(100% - 24px);
+  max-width: 460px;
+  max-height: calc(100dvh - 24px);
+  color: var(--text);
+}
+.setlist::backdrop {
+  background: rgba(8, 7, 20, 0.82);
+  backdrop-filter: blur(3px);
+}
+.setlist-card {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 24px);
+  padding: 12px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: linear-gradient(160deg, var(--panel-2), var(--panel));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+.setlist-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 4px 8px;
+}
+.setlist-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.setlist-kicker {
+  margin: 3px 0 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.setlist-close {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.setlist-body {
+  overflow-y: auto;
+  padding: 0 4px 4px;
+  -webkit-overflow-scrolling: touch;
+}
+.setlist-gig {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 9px 11px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+}
+.setlist-where {
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.setlist-when {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.setlist-date {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+.setlist-age {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(216, 194, 126, 0.16);
+  color: var(--accent);
+}
+.setlist-age.is-stale {
+  background: rgba(166, 162, 153, 0.14);
+  color: var(--muted);
+}
+.setlist-count {
+  margin: 12px 0 6px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.setlist-songs {
+  list-style: none;
+  counter-reset: setlist;
+  margin: 0;
+  padding: 0;
+}
+.setlist-song {
+  counter-increment: setlist;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 7px 2px;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  border-bottom: 1px solid rgba(46, 46, 56, 0.6);
+}
+.setlist-song:last-child {
+  border-bottom: none;
+}
+.setlist-song::before {
+  content: counter(setlist);
+  flex-shrink: 0;
+  min-width: 1.4em;
+  font-size: 0.66rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-2);
+}
+.setlist-empty {
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.setlist-link {
+  display: block;
+  margin-top: 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-decoration: none;
+}
+.setlist-link:hover {
+  text-decoration: underline;
+}
+.setlist-note {
+  margin: 14px 0 0;
+  font-size: 0.66rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
