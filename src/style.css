@@ -2450,15 +2450,29 @@ button.bag-row {
   text-transform: uppercase;
   vertical-align: middle;
 }
-/* On-site ticketing sits inside the night block, one rung quieter than the
-   ride-home note it follows. */
+/* Ticketing sits inside the night block, one rung quieter than the ride-home
+   note it follows. */
 .bus-tickets {
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid var(--line);
 }
+/* The app line and the cashier fallback are one pair of options, so only the
+   first is ruled off from the note above — two dividers in a block this small
+   read as three unrelated paragraphs. */
+.bus-tickets + .bus-tickets {
+  margin-top: 4px;
+  padding-top: 0;
+  border-top: 0;
+}
 .bus-tickets-icon {
   margin-right: 2px;
+}
+/* Mid-sentence, colour alone is a weak affordance — these links sit inside
+   prose rather than in the labelled source row at the foot of the panel. */
+.bus-tickets .bus-src {
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 /* The night service carries the whole return leg once the timetable runs out,

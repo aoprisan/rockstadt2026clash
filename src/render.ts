@@ -1116,11 +1116,28 @@ function renderBuses(day: FestivalDay): HTMLElement {
       `The ride home is the dedicated metropolitan line ${buses.EXTRAS.night.line} (${buses.EXTRAS.night.route}), boarding at the ${buses.EXTRAS.night.boardStop} stop about every ${buses.EXTRAS.night.headwayMin} minutes between ${buses.EXTRAS.night.from} and ${buses.EXTRAS.night.to}. It runs to ${buses.EXTRAS.night.dest}, not back to ${buses.STOP_TOWN} where the daytime lines start — laid on for the festival, so it's posted on site rather than in the RATBV timetable.`,
     ),
   );
+  // Two ways to be holding a valid fare at 02:00, in the order they are worth
+  // doing: the app you set up before you fly, then the cashier you queue for.
+  const app = el('p', 'bus-night-note bus-tickets');
+  app.appendChild(el('span', 'bus-tickets-icon', '📱'));
+  app.appendChild(document.createTextNode(' Buy the ride on your phone: '));
+  const appLink = el('a', 'bus-src', buses.TICKET_APP.name);
+  appLink.href = buses.TICKET_APP.url;
+  appLink.target = '_blank';
+  appLink.rel = 'noopener noreferrer';
+  app.appendChild(appLink);
+  app.appendChild(
+    document.createTextNode(
+      ` sells RATBV's whole tariff list, metropolitan lines included, at kiosk price with no surcharge — attach a ${buses.TICKET_APP.cards} once, then scan the QR on the stop pole or in the vehicle and pick the fare. It's on ${buses.TICKET_APP.stores}, in Romanian, so set it up at home rather than in the queue.`,
+    ),
+  );
+  night.appendChild(app);
+
   const tickets = el('p', 'bus-night-note bus-tickets');
   tickets.appendChild(el('span', 'bus-tickets-icon', '🎫'));
   tickets.appendChild(
     document.createTextNode(
-      ` No ticket? Mobile cashiers sell them right at the ${buses.EXTRAS.tickets.where} stop between ${buses.EXTRAS.tickets.from} and ${buses.EXTRAS.tickets.to}, and control teams ride throughout the event.`,
+      ` No app, no ticket? Mobile cashiers sell them right at the ${buses.EXTRAS.tickets.where} stop between ${buses.EXTRAS.tickets.from} and ${buses.EXTRAS.tickets.to}, and control teams ride throughout the event.`,
     ),
   );
   night.appendChild(tickets);
