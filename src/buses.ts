@@ -103,6 +103,28 @@ export const EXTRAS = {
   tickets: { from: '00:30', to: '03:00', where: 'Festival Rockstadt' },
 };
 
+/**
+ * Paying for the ride from your phone.
+ *
+ * RATBV's full tariff list — urban *and* metropolitan, which is the category
+ * the 210, the 220 and the night 211T all fall into — is sold through the
+ * 24pay app, at the same price as the kiosk and with no surcharge for paying
+ * this way. You attach a card once, then scan the QR sticker on the stop pole
+ * or inside the vehicle and pick the fare.
+ *
+ * This belongs on the pre-flight list rather than the on-the-night one: the app
+ * is Romanian-language and wants a card enrolled before it will sell you
+ * anything, and 02:30 in a field with five thousand people also wanting to go
+ * home is the wrong moment to find out your bank asks for a 3-D Secure
+ * confirmation. Set it up at home; the mobile cashiers below stay the fallback.
+ */
+export const TICKET_APP = {
+  name: '24pay',
+  url: 'https://www.24pay.ro/',
+  stores: 'Google Play, the App Store and Huawei AppGallery',
+  cards: 'Visa or Mastercard',
+};
+
 /** True for a departure inside the supplemented 13:00–17:00 arrival window. */
 export function inExtraWindow(run: BusRun): boolean {
   return run.at >= toMinutes(EXTRAS.inbound.from) && run.at <= toMinutes(EXTRAS.inbound.to);

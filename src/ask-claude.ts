@@ -8,7 +8,7 @@ import {
   getSlot,
   minutesToLabel,
 } from './schedule';
-import { boardBy, dayTypeFor, EXTRAS, STOP_TOWN, WALK_MIN } from './buses';
+import { boardBy, dayTypeFor, EXTRAS, STOP_TOWN, TICKET_APP, WALK_MIN } from './buses';
 import { selection } from './store';
 import { tasteProfile } from './taste';
 import { currentWeek } from './stamina';
@@ -117,7 +117,8 @@ function busFacts(): string {
   return [
     '## Getting there & back (RATBV city buses)',
     `- To the site: lines ${EXTRAS.daytime.lines.join(' and ')} from ${STOP_TOWN} (Brașov), roughly every ${door} min during the festival, with extra runs ${EXTRAS.inbound.from}–${EXTRAS.inbound.to}. Ride is ~13–14 min, then a ~${WALK_MIN} min walk from the Ghimbav Făgărașului stop to the gate.`,
-    `- Home at night: line ${EXTRAS.night.line} (${EXTRAS.night.route}), boarding at the "${EXTRAS.night.boardStop}" stop, every ~${EXTRAS.night.headwayMin} min from ${EXTRAS.night.from} to ${EXTRAS.night.to}. Tickets are sold on-site at the stop during that window.`,
+    `- Home at night: line ${EXTRAS.night.line} (${EXTRAS.night.route}), boarding at the "${EXTRAS.night.boardStop}" stop, every ~${EXTRAS.night.headwayMin} min from ${EXTRAS.night.from} to ${EXTRAS.night.to}.`,
+    `- Bus tickets: the ${TICKET_APP.name} app (${TICKET_APP.url}) sells RATBV's full tariff list, metropolitan lines included, at kiosk price — attach a ${TICKET_APP.cards}, then scan the QR at the stop or in the vehicle. Romanian-language, so worth setting up before travelling. Otherwise mobile cashiers sell tickets at the "${EXTRAS.tickets.where}" stop between ${EXTRAS.tickets.from} and ${EXTRAS.tickets.to}.`,
     '- Earlier in the evening, daytime 210/220 buses run back from Ghimbav until roughly 23:00–23:40.',
   ].join('\n');
 }
