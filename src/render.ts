@@ -66,11 +66,13 @@ import { patchCount } from './delays';
 import { openSetlist } from './setlist-panel';
 import { bandSetlist } from './setlists';
 
-// Vertical scale of the timeline. Sized so even the shortest sets (45 min) are
-// tall enough to hold their full content — a three-line band name plus the
-// time, weather and both action pills — without clipping. Longer sets simply
-// get proportionally taller boxes.
-const PX_PER_MIN = 2.4;
+// Vertical scale of the timeline. Sized so even the shortest set on the poster
+// (Heavy//Hitter, 40 min) is tall enough to hold its full content — a
+// three-line band name, the time and weather strip, and the action pills on
+// the two rows they wrap onto in a phone-width column — without clipping.
+// Raised from 2.4 when the setlist pill made the pill row a two-row affair on
+// phones. Longer sets simply get proportionally taller boxes.
+const PX_PER_MIN = 3.8;
 const HEADER_OFFSET = 0;
 
 let activeDayId = loadActiveDay(DAYS[0].id);
