@@ -13,14 +13,19 @@ import type { LastSetlist } from './types';
  *    only useful if you can see how old it is, so `date`/`event`/`city` are
  *    part of the data rather than decoration. A band's newest gig is preferred,
  *    but a clean older list beats a garbled newer one — the date says which.
+ *    Where the individual gig page could not be reached, `source` is the band's
+ *    setlist.fm index instead; the gig itself is still named in the entry.
  * 2. Nothing is invented or inferred. Where a band's song list could not be
  *    established, it is simply absent and the UI offers a setlist.fm search
  *    instead, exactly as `bandListen()` falls back to a Spotify search. Tour
  *    averages and "songs they usually play" are deliberately not recorded here:
  *    this table only holds real, single-night setlists.
  *
- * Coverage is partial (most headliners; few of the local openers, who are
- * largely undocumented on setlist.fm). Adding a band is just another entry.
+ * Coverage is partial — 45 of the 85 acts. It is thin exactly where the record
+ * is thin: the Romanian and small-club openers (Pârnaie, Machukha, Hvnds,
+ * Underwaves and the like) have no transcribed gig anywhere, and a few touring
+ * bands only have partial or clearly garbled entries, which are left out rather
+ * than shown half-right. Adding a band is just another entry.
  */
 export const LAST_SETLISTS: Record<string, LastSetlist> = {
   Accept: {
@@ -40,6 +45,30 @@ export const LAST_SETLISTS: Record<string, LastSetlist> = {
     ],
     source:
       'https://www.setlist.fm/setlist/accept/2026/val-de-moine-mainstage-01-clisson-france-1b4f3d1c.html',
+  },
+
+  Airbourne: {
+    date: '2026-02-05',
+    venue: 'Raiffeisen Halle im Gasometer',
+    city: 'Vienna, AT',
+    songs: [
+      'Gutsy',
+      'Fat City',
+      'Cradle to the Grave',
+      'Hungry',
+      'Back in the Game',
+      'Raise the Flag',
+      'Diamond in the Rough',
+      'Alive After Death',
+      'No Way but the Hard Way',
+      'Too Much, Too Young, Too Fast',
+      'Live It Up',
+      "Breakin' Outta Hell",
+      'Ready to Rock',
+      "Runnin' Wild",
+    ],
+    source:
+      'https://www.setlist.fm/setlist/airbourne/2026/raiffeisen-halle-im-gasometer-vienna-austria-5b44d780.html',
   },
 
   Alcest: {
@@ -100,6 +129,28 @@ export const LAST_SETLISTS: Record<string, LastSetlist> = {
     ],
     source:
       'https://www.setlist.fm/setlist/animals-as-leaders/2026/wolf-trap-national-park-for-the-performing-arts-filene-center-vienna-va-5b4c6340.html',
+  },
+
+  Annisokay: {
+    date: '2026-01-15',
+    event: 'The Abyss Pt. II tour',
+    venue: 'The Garage',
+    city: 'London, GB',
+    songs: [
+      'Into the Abyss',
+      'Throne of the Sunset',
+      'Never Enough',
+      "What's Wrong",
+      'Ultraviolet',
+      'Like a Parasite',
+      'Splinters',
+      'My Effigy',
+      'Human',
+      'Good Stories',
+      'Silent Anchor',
+      'H.A.T.E.',
+    ],
+    source: 'https://www.setlist.fm/setlists/annisokay-73db2ec5.html',
   },
 
   'Arch Enemy': {
@@ -250,6 +301,27 @@ export const LAST_SETLISTS: Record<string, LastSetlist> = {
       'https://www.setlist.fm/setlist/creeper/2026/o2-academy-oxford-o2-academy-2-oxford-england-234df4ff.html',
   },
 
+  Deafheaven: {
+    date: '2026-07-10',
+    venue: 'Liberty Hall',
+    city: 'Sydney, AU',
+    songs: [
+      'Incidental I',
+      'Doberman',
+      'Magnolia',
+      'Brought to the Water',
+      'Sunbather',
+      'The Garden Route',
+      'Body Behavior',
+      'Amethyst',
+      'Incidental II',
+      'Revelator',
+      'Dream House',
+    ],
+    source:
+      'https://www.setlist.fm/setlist/deafheaven/2026/liberty-hall-sydney-australia-43490767.html',
+  },
+
   Deicide: {
     date: '2026-06-20',
     event: 'Hellfest 2026',
@@ -333,6 +405,79 @@ export const LAST_SETLISTS: Record<string, LastSetlist> = {
     source: 'https://www.setlist.fm/setlists/feuerschwanz-bd6c5ce.html',
   },
 
+  // The gig page itself could not be reached, so this links the band's own
+  // setlist.fm index — the search that turned it up names Phoenix, 8 May 2026.
+  'Fu Manchu': {
+    date: '2026-05-08',
+    city: 'Phoenix, AZ, US',
+    songs: [
+      'Hell on Wheels',
+      "Eatin' Dust",
+      'Evil Eye',
+      'Hands of the Zodiac',
+      'California Crossing',
+      'Roads of the Lowly',
+      'Superbird',
+      'King of the Road',
+      'Saturn III',
+    ],
+    source: 'https://www.setlist.fm/setlists/fu-manchu-4bd6afae.html',
+  },
+
+  Godsmack: {
+    date: '2026-07-02',
+    event: 'The Rise of Rock World Tour 2026',
+    venue: 'Xfinity Center',
+    city: 'Mansfield, MA, US',
+    songs: [
+      'Surrender',
+      'Whatever',
+      "Cryin' Like a Bitch!!",
+      'Rocky Mountain Way',
+      'Straight Out of Line',
+      'Keep Away',
+      'Batalla de los Tambores',
+      'Love-Hate-Sex-Pain',
+      'Voodoo',
+      'Awake',
+      'When Legends Rise',
+      'You and I',
+      'Under Your Scars',
+      'I Stand Alone',
+      'Bulletproof',
+    ],
+    source:
+      'https://www.setlist.fm/setlist/godsmack/2026/xfinity-center-mansfield-ma-634b9e2b.html',
+  },
+
+  // The first reunion show with the original line-up, so a set built to be a
+  // career summary rather than a normal night's running order.
+  Grave: {
+    date: '2026-04-05',
+    venue: 'Kulturhuset Stadsteatern',
+    city: 'Stockholm, SE',
+    songs: [
+      'Into the Grave',
+      'Eroded',
+      'Turning Black',
+      'Day of Mourning',
+      'Morbid Way to Die',
+      'Deformed',
+      'In Love',
+      'Soulless',
+      'Brutally Deceased',
+      'Black Dawn',
+      'Christi(ns)anity',
+      'Bullets Are Mine',
+      'For Your God',
+      'Extremely Rotten Flesh',
+      "You'll Never See",
+      'Hating Life',
+      'And Here I Die',
+    ],
+    source: 'https://www.setlist.fm/setlists/grave-1bd6fdc4.html',
+  },
+
   Hatebreed: {
     date: '2026-05-10',
     event: 'Welcome to Rockville 2026',
@@ -350,6 +495,29 @@ export const LAST_SETLISTS: Record<string, LastSetlist> = {
     ],
     source:
       'https://www.setlist.fm/setlist/hatebreed/2026/daytona-international-speedway-garage-stage-daytona-beach-fl-6b4f5eaa.html',
+  },
+
+  'Heaven Shall Burn': {
+    date: '2026-03-13',
+    event: 'Heimat Over Europe 2026',
+    venue: 'Columbiahalle',
+    city: 'Berlin, DE',
+    songs: [
+      'Ad Arma',
+      'War Is the Father of All',
+      'Voice of the Voiceless',
+      'My Revocation of Compliance',
+      'Godiva',
+      'Counterweight',
+      'Armia',
+      'Confounder',
+      'Awoken',
+      'Endzeit',
+      'Black Tears',
+      'Übermacht',
+    ],
+    source:
+      'https://www.setlist.fm/setlist/heaven-shall-burn/2026/columbiahalle-berlin-germany-2342343b.html',
   },
 
   Helloween: {
@@ -423,6 +591,61 @@ export const LAST_SETLISTS: Record<string, LastSetlist> = {
       'https://www.setlist.fm/setlist/immolation/2026/electric-brixton-london-england-43414f37.html',
   },
 
+  'In Extremo': {
+    date: '2026-06-13',
+    event: 'Feuertanz Festival 2026',
+    venue: 'Burg Abenberg',
+    city: 'Abenberg, DE',
+    songs: [
+      'Ólafur',
+      'Spielmannsfluch',
+      'Troja',
+      'Weckt die Toten',
+      'Feuertaufe',
+      'Werd ich am Galgen hochgezogen',
+      'Vollmond',
+      'Herr Mannelig',
+      'Rasend Herz',
+      'Blutmond',
+      'Liam',
+      'Erdbeermund',
+      'Feine Seele',
+      'Villeman og Magnhild',
+      'Wind',
+      'Störtebeker',
+      'Sängerkrieg',
+      'Wolkenschieber',
+      'Sternhagelvoll',
+      'Frei zu sein',
+      'Pikse Palve',
+    ],
+    source:
+      'https://www.setlist.fm/setlist/in-extremo/2026/burg-abenberg-abenberg-germany-53751369.html',
+  },
+
+  'In Flames': {
+    date: '2026-07-19',
+    event: 'European Summer Tour 2026',
+    venue: 'Refinery Gallery',
+    city: 'Bratislava, SK',
+    songs: [
+      'Colony',
+      'Deliver Us',
+      'In the Dark',
+      'Voices',
+      'Paralyzed',
+      'The Quiet Place',
+      'Meet Your Maker',
+      'The Chosen Pessimist',
+      'Cloud Connected',
+      'Artifacts of the Black Rain',
+      'Trigger',
+      'Only for the Weak',
+    ],
+    source:
+      'https://www.setlist.fm/setlist/in-flames/2026/refinery-gallery-bratislava-slovakia-6b4cba02.html',
+  },
+
   Insomnium: {
     date: '2026-07-04',
     venue: 'Champ de Foire',
@@ -466,6 +689,152 @@ export const LAST_SETLISTS: Record<string, LastSetlist> = {
     ],
     source:
       'https://www.setlist.fm/setlist/lamb-of-god/2026/coliseo-jose-miguel-agrelot-san-juan-puerto-rico-1b7429dc.html',
+  },
+
+  // No 2026 gig is documented yet — this is the last one on record.
+  Majestica: {
+    date: '2025-11-08',
+    venue: 'Klubben (Fryshuset)',
+    city: 'Stockholm, SE',
+    songs: [
+      'Power Train',
+      'Night Call Girl',
+      'Rising Tide',
+      'No Pain No Gain',
+      'Above the Sky',
+      'Metal United',
+    ],
+    source: 'https://www.setlist.fm/setlists/majestica-63d7a2ef.html',
+  },
+
+  'Marilyn Manson': {
+    date: '2026-07-08',
+    event: 'Festival de Nîmes 2026',
+    venue: 'Arènes de Nîmes',
+    city: 'Nîmes, FR',
+    songs: [
+      'Nod If You Understand',
+      'Disposable Teens',
+      'Angel With the Scabbed Wings',
+      'Great Big White World',
+      'This Is the New Shit',
+      'Dried Up, Tied and Dead to the World',
+      'Exit Wound',
+      'The Nobodies',
+      'Diary of a Dope Fiend',
+      'The Dope Show',
+      'Sweet Dreams (Are Made of This)',
+      'mOBSCENE',
+      'The Beautiful People',
+      'Tourniquet',
+      'Personal Jesus',
+      'If I Was Your Vampire',
+    ],
+    source:
+      'https://www.setlist.fm/setlist/marilyn-manson/2026/arenes-de-nimes-nimes-france-34f3d03.html',
+  },
+
+  // The reunited line-up's first show back, five days before this festival.
+  Nevermore: {
+    date: '2026-07-26',
+    event: 'Hills of Rock 2026',
+    city: 'Plovdiv, BG',
+    songs: [
+      'Beyond Within',
+      'Inside Four Walls',
+      'My Acid Words',
+      'Engines of Hate',
+      'Born',
+      'Believe in Nothing',
+      'Narcosynthesis',
+      'Moonrise (Through Mirrors of Death)',
+      'Enemies of Reality',
+      'The River Dragon Has Come',
+    ],
+    source: 'https://www.setlist.fm/setlists/nevermore-3d6fd23.html',
+  },
+
+  Northlane: {
+    date: '2026-05-30',
+    event: 'The Pale Moonlight tour',
+    venue: 'SOMA',
+    city: 'San Diego, CA, US',
+    songs: [
+      'Carbonized',
+      '4D',
+      'Talking Heads',
+      'Evian',
+      'Bloodline',
+      'Dante',
+      'Worldeater / Dispossession / Jinn / Solar',
+      'Clockwork',
+    ],
+    source:
+      'https://www.setlist.fm/setlist/northlane/2026/soma-san-diego-ca-63772ab3.html',
+  },
+
+  'Novembers Doom': {
+    event: 'Maryland Deathfest 2026',
+    city: 'Baltimore, MD, US',
+    songs: [
+      'Petrichor',
+      'Major Arcana',
+      'Ghost',
+      'Dark World Burden',
+      'Mercy',
+      'Rain',
+      'The Day I Return',
+      'Just Breathe',
+      'Six Sides',
+      'Ravenous',
+      'The Pale Haunt Departure',
+    ],
+    source: 'https://www.setlist.fm/setlists/novembers-doom-73d682d5.html',
+  },
+
+  Periphery: {
+    date: '2026-06-23',
+    event: 'UK & Europe Tour 2026',
+    venue: 'Live Music Hall',
+    city: 'Cologne, DE',
+    songs: [
+      'Obsession',
+      'Wildfire',
+      'Atropos',
+      'Heaven on High',
+      'Make Total Destroy',
+      'Facepalm Mute',
+      'Letter Experiment',
+      'Psychosphere',
+      'Neon Valley',
+      'Mr. God',
+      'Unlocking',
+      'Everyone Dies Alone',
+      'Blood Eagle',
+    ],
+    source:
+      'https://www.setlist.fm/setlist/periphery/2026/live-music-hall-cologne-germany-73488249.html',
+  },
+
+  Perturbator: {
+    date: '2026-05-21',
+    venue: 'Paribu Art',
+    city: 'Istanbul, TR',
+    songs: [
+      'Lunacy',
+      'Excess',
+      'The Art of War',
+      'Apocalypse Now',
+      'Corrupted by Design',
+      'Diabolus Ex Machina / Weapons for Children',
+      'Humans Are Such Easy Prey',
+      'The Glass Staircase',
+      'Messalina, Messalina',
+      'Venger',
+      'Neo Tokyo',
+      'Future Club',
+    ],
+    source: 'https://www.setlist.fm/setlists/perturbator-3bdf7c40.html',
   },
 
   Sabaton: {
@@ -525,6 +894,95 @@ export const LAST_SETLISTS: Record<string, LastSetlist> = {
     ],
     source:
       'https://www.setlist.fm/setlist/satyricon/2026/parksnackan-uppsala-sweden-13761d79.html',
+  },
+
+  Soulfly: {
+    date: '2026-04-29',
+    venue: 'The Fillmore',
+    city: 'Charlotte, NC, US',
+    songs: [
+      "Seek 'n' Strike",
+      'No Hope = No Fear',
+      'Favela / Dystopia',
+      'Prophecy',
+      'Storm the Gates',
+      'Back to the Primitive',
+      'Fire / Bring It',
+      'Chama',
+      'No',
+      'Jumpdafuckup',
+      'Eye for an Eye',
+    ],
+    source:
+      'https://www.setlist.fm/setlist/soulfly/2026/the-fillmore-charlotte-nc-1b4d9d34.html',
+  },
+
+  'The Gathering': {
+    date: '2026-07-05',
+    event: 'Evil Live 2026 (Mandylion anniversary tour)',
+    venue: 'MEO Arena',
+    city: 'Lisbon, PT',
+    songs: [
+      'Mandylion',
+      'Eléanor',
+      'Fear the Sea',
+      'In Motion #1',
+      'On Most Surfaces (Inuït)',
+      'Leaves',
+      'Strange Machines',
+      'Saturnine',
+    ],
+    source:
+      'https://www.setlist.fm/setlist/the-gathering/2026/meo-arena-lisbon-portugal-b4dd5b2.html',
+  },
+
+  'The Ghost Inside': {
+    date: '2026-06-05',
+    venue: 'Empire Live',
+    city: 'Albany, NY, US',
+    songs: [
+      'Going Under',
+      'The Outcast',
+      'The Great Unknown',
+      'Earn It',
+      'Death Grip',
+      'Pressure Point',
+      'Out of Control',
+      'Dark Horse',
+      'Light Years',
+      'Wash It Away',
+      'Mercy',
+      'Dear Youth (Day 52)',
+      'Wrath',
+      'Secret',
+      'Faith or Forgiveness',
+      'Between the Lines',
+      'Aftermath',
+      'Avalanche',
+      'Engine 45',
+    ],
+    source: 'https://www.setlist.fm/setlists/the-ghost-inside-bd7e5da.html',
+  },
+
+  Tribulation: {
+    date: '2026-05-16',
+    venue: 'Arbis Bar & Salonger',
+    city: 'Norrköping, SE',
+    songs: [
+      'The Unrelenting Choir',
+      'Tainted Skies',
+      'Nightbound',
+      'Hamartia',
+      'Rånda',
+      'Ultra Silvam',
+      'In Remembrance',
+      'Hungry Waters',
+      'Saturn Coming Down',
+      'Murder in Red',
+      'The Lament',
+      'Melancholia',
+    ],
+    source: 'https://www.setlist.fm/setlists/tribulation-2bdce8da.html',
   },
 
   Vader: {
