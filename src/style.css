@@ -3981,6 +3981,16 @@ button.bag-row {
   object-fit: cover;
   background: #000;
 }
+.beam-done {
+  margin: 0 0 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ok);
+  line-height: 1.45;
+}
+.beam-done:empty {
+  display: none;
+}
 .beam-status {
   margin: 0 0 10px;
   min-height: 1.2em;

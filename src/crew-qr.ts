@@ -174,19 +174,47 @@ export function applyBeam(beam: BeamPayload): BeamResult {
 export type ScanParse =
   | { kind: 'beam'; beam: BeamPayload }
   | { kind: 'picks'; ids: string[] }
+  | { kind: 'empty' }
   | { kind: 'invalid' };
 
-export function parseBeamInput(input: string): ScanParse {
-  const trimmed = input.trim();
-  if (!trimmed) return { kind: 'invalid' };
+/**
+ * Links arrive mangled: messengers wrap them in `<>`, chat clients percent-encode
+ * the `#`, and phone keyboards sprinkle in zero-width characters. Clean all of
+ * that off before we decide a perfectly good beam is garbage.
+ */
+function normalizeInput(input: string): string {
+  let s = input.replace(/[\u200b-\u200f\u2060\ufeff]/g, '').trim();
+  s = s.replace(/^[<"'(\s]+/, '').replace(/[>"')\s.,]+$/, '');
+  // A `#` that survived as %23 (common when a link rides through a chat app).
+  if (!s.includes('#') && /%23/i.test(s)) {
+    try {
+      s = decodeURIComponent(s);
+    } catch {
+      /* leave it as-is */
+    }
+  }
+  return s;
+}
 
-  const beamMatch = trimmed.match(/[#&]c=([^&\s]+)/);
-  const beamToken = beamMatch ? decodeURIComponent(beamMatch[1]) : trimmed;
+function decodeToken(raw: string): string {
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw; // a stray % in the token — treat it literally
+  }
+}
+
+export function parseBeamInput(input: string): ScanParse {
+  const trimmed = normalizeInput(input);
+  if (!trimmed) return { kind: 'empty' };
+
+  const beamMatch = trimmed.match(/[#&?]c=([^&\s]+)/);
+  const beamToken = beamMatch ? decodeToken(beamMatch[1]) : trimmed;
   const beam = decodeBeam(beamToken);
   if (beam) return { kind: 'beam', beam };
 
-  const picksMatch = trimmed.match(/[#&]p=([^&\s]+)/);
-  const picksToken = picksMatch ? decodeURIComponent(picksMatch[1]) : trimmed;
+  const picksMatch = trimmed.match(/[#&?]p=([^&\s]+)/);
+  const picksToken = picksMatch ? decodeToken(picksMatch[1]) : trimmed;
   const ids = decodePicks(picksToken);
   if (ids.length > 0) return { kind: 'picks', ids };
 
@@ -454,44 +482,96 @@ function describeResult(r: BeamResult): string {
   return `🤘 Crew synced — ${bits.join(' · ')}.`;
 }
 
-function handlePayload(
-  text: string,
-  status: HTMLElement,
-  fallbackName: () => string,
-): boolean {
-  const parsed = parseBeamInput(text);
-  if (parsed.kind === 'invalid') {
-    status.textContent = 'That code isn’t a crew beam or picks link.';
-    status.classList.add('is-error');
-    return false;
-  }
-  status.classList.remove('is-error');
-  if (parsed.kind === 'beam') {
-    if (!parsed.beam.me.name && parsed.beam.crew.length === 0) {
-      status.textContent = 'That beam was empty.';
-      return false;
-    }
-    const result = applyBeam(parsed.beam);
-    status.textContent = describeResult(result);
-    onMerged?.();
-    return true;
-  }
-  // A plain picks link has no name riding along — ask for one.
-  const name = fallbackName();
-  if (!name) {
-    status.textContent =
-      'That’s a plain picks link — type the friend’s name below, then try again.';
-    return false;
-  }
-  addFriend(name, parsed.ids);
-  status.textContent = `🤘 Added ${name} (${parsed.ids.length} pick${parsed.ids.length === 1 ? '' : 's'}).`;
+/**
+ * Where the payload came from — only the wording differs, but "that code" is
+ * nonsense when someone hit Add on an empty paste box.
+ */
+type PayloadSource = 'scan' | 'paste';
+
+interface ScanUi {
+  /** Live feedback for the attempt in progress. */
+  status: HTMLElement;
+  /** Sticky confirmation of what actually landed in the crew, kept on screen. */
+  done: HTMLElement;
+}
+
+function fail(ui: ScanUi, message: string): false {
+  ui.status.textContent = message;
+  ui.status.classList.add('is-error');
+  return false;
+}
+
+function succeed(ui: ScanUi, message: string): true {
+  // The merge is the headline: park it on its own line so a later fat-fingered
+  // paste can't leave the screen claiming nothing was added.
+  ui.done.textContent = message;
+  ui.status.textContent = '';
+  ui.status.classList.remove('is-error');
   onMerged?.();
   return true;
 }
 
+function handlePayload(
+  text: string,
+  ui: ScanUi,
+  fallbackName: () => string,
+  source: PayloadSource = 'scan',
+): boolean {
+  const parsed = parseBeamInput(text);
+  if (parsed.kind === 'empty') {
+    return fail(
+      ui,
+      source === 'paste'
+        ? 'Paste a beam or picks link first — the box above is empty.'
+        : 'That QR code was empty.',
+    );
+  }
+  if (parsed.kind === 'invalid') {
+    return fail(
+      ui,
+      source === 'paste'
+        ? 'That link isn’t a crew beam or picks link — copy the whole thing, including the part after the #.'
+        : 'That code isn’t a crew beam or picks link — it needs to be a friend’s ▦ My QR.',
+    );
+  }
+  ui.status.classList.remove('is-error');
+  if (parsed.kind === 'beam') {
+    if (!parsed.beam.me.name && parsed.beam.crew.length === 0) {
+      return fail(ui, 'That beam was empty — the sender needs to pick some sets first.');
+    }
+    const result = applyBeam(parsed.beam);
+    return succeed(ui, describeResult(result));
+  }
+  // A plain picks link has no name riding along — ask for one.
+  const name = fallbackName();
+  if (!name) {
+    ui.status.textContent =
+      'That’s a plain picks link — type the friend’s name below, then try again.';
+    ui.status.classList.remove('is-error');
+    return false;
+  }
+  addFriend(name, parsed.ids);
+  return succeed(
+    ui,
+    `🤘 Added ${name} (${parsed.ids.length} pick${parsed.ids.length === 1 ? '' : 's'}).`,
+  );
+}
+
+/** Keep autofill and iOS autocorrect out of fields holding tokens and names. */
+function noAutofill(input: HTMLInputElement): void {
+  input.autocomplete = 'off';
+  input.spellcheck = false;
+  input.setAttribute('autocorrect', 'off');
+  input.setAttribute('autocapitalize', 'off');
+  input.setAttribute('data-1p-ignore', '');
+}
+
 function paintScan(pane: HTMLElement, _nameInput: HTMLInputElement): void {
+  const done = el('p', 'beam-done');
+  done.setAttribute('role', 'status');
   const status = el('p', 'beam-status');
   status.setAttribute('role', 'status');
+  const ui: ScanUi = { status, done };
 
   const detector = barcodeDetector();
   const camHost = el('div', 'beam-cam-host');
@@ -501,6 +581,8 @@ function paintScan(pane: HTMLElement, _nameInput: HTMLInputElement): void {
   friendName.placeholder = 'Friend’s name (for plain picks links)';
   friendName.maxLength = 24;
   friendName.setAttribute('aria-label', 'Friend’s name, used when adding a plain picks link');
+  noAutofill(friendName);
+  friendName.setAttribute('autocapitalize', 'words');
 
   if (detector && navigator.mediaDevices?.getUserMedia) {
     const start = el('button', 'beam-btn primary beam-start', '📷 Start camera');
@@ -529,12 +611,30 @@ function paintScan(pane: HTMLElement, _nameInput: HTMLInputElement): void {
       camHost.appendChild(video);
       status.textContent = 'Point at a friend’s crew QR…';
 
+      // detect() outlives a 350ms tick, so ticks overlap. Without these guards a
+      // late frame lands *after* a successful merge and overwrites the result
+      // with "that isn't a crew beam" — the crew member is added, but the screen
+      // says it failed.
+      let busy = false;
+      let merged = false;
+      let lastMiss = '';
+
       scanTimer = window.setInterval(async () => {
-        if (!stream) return;
+        if (!stream || busy || merged) return;
+        busy = true;
         try {
           const codes = await detector.detect(video);
+          if (!stream || merged) return; // the camera was closed while we decoded
           const hit = codes.find((c) => c.rawValue);
-          if (hit && handlePayload(hit.rawValue, status, () => friendName.value.trim())) {
+          if (!hit) return;
+          // Don't re-report the same unusable code every third of a second.
+          const parsed = parseBeamInput(hit.rawValue);
+          if (parsed.kind === 'invalid' || parsed.kind === 'empty') {
+            if (hit.rawValue === lastMiss) return;
+            lastMiss = hit.rawValue;
+          }
+          if (handlePayload(hit.rawValue, ui, () => friendName.value.trim())) {
+            merged = true;
             stopCamera();
             camHost.innerHTML = '';
             const again = el('button', 'beam-btn', '📷 Scan another');
@@ -545,6 +645,8 @@ function paintScan(pane: HTMLElement, _nameInput: HTMLInputElement): void {
           }
         } catch {
           /* a frame failed to decode — keep trying */
+        } finally {
+          busy = false;
         }
       }, 350);
     });
@@ -560,6 +662,7 @@ function paintScan(pane: HTMLElement, _nameInput: HTMLInputElement): void {
   }
 
   pane.appendChild(camHost);
+  pane.appendChild(done);
   pane.appendChild(status);
 
   // Paste fallback — works everywhere, including iOS Safari without detector.
@@ -567,6 +670,7 @@ function paintScan(pane: HTMLElement, _nameInput: HTMLInputElement): void {
   const paste = el('input', 'crew-input beam-paste-input') as HTMLInputElement;
   paste.placeholder = '…or paste a beam / picks link';
   paste.setAttribute('aria-label', 'Paste a crew beam or picks link');
+  noAutofill(paste);
   const go = el('button', 'beam-btn', 'Add') as HTMLButtonElement;
   go.type = 'submit';
   form.appendChild(paste);
@@ -574,7 +678,7 @@ function paintScan(pane: HTMLElement, _nameInput: HTMLInputElement): void {
   form.appendChild(go);
   form.addEventListener('submit', (e) => {
     e.preventDefault();
-    if (handlePayload(paste.value, status, () => friendName.value.trim())) {
+    if (handlePayload(paste.value, ui, () => friendName.value.trim(), 'paste')) {
       paste.value = '';
     }
   });
