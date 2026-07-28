@@ -3,6 +3,12 @@ import { bandGenre, bandListen } from './band-meta';
 import { isCancelled, shiftFor, subscribeDelays } from './delays';
 import type { FestivalDay, SetSlot, StageId } from './types';
 
+/**
+ * The canonical stage order, and a wire format: `ALL_SLOTS` is built from it and
+ * the share-link codec indexes picks by position in that array. It must stay
+ * fixed — the order the timeline *shows* the stages in lives in `stage-order.ts`
+ * and is the user's to rearrange.
+ */
 const STAGE_ORDER: StageId[] = ['rugina', 'brasov', 'calmuc'];
 
 /**

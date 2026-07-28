@@ -2,6 +2,7 @@ import { DAYS, STAGES } from './data';
 import type { StageId } from './types';
 import { buildSlots, festivalInstant, minutesToLabel, subscribeSchedule } from './schedule';
 import { selection } from './store';
+import { stageOrder } from './stage-order';
 import {
   FROM_ALL,
   MAX_SHIFT,
@@ -25,7 +26,6 @@ import {
  * the new times.
  */
 
-const STAGE_ORDER: StageId[] = ['rugina', 'brasov', 'calmuc'];
 const STEP = 5;
 
 let dialog: HTMLDialogElement | null = null;
@@ -139,7 +139,9 @@ function repaint(): void {
     ),
   );
 
-  for (const stageId of STAGE_ORDER) {
+  // Same left-to-right order as the timeline's columns, so the stage you are
+  // looking for is where you last dragged it.
+  for (const stageId of stageOrder()) {
     body.appendChild(renderStage(day.id, day.date, stageId));
   }
 
