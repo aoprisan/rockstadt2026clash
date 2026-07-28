@@ -1399,43 +1399,69 @@ button.bag-row {
 .set.picked .set-wx-mm {
   color: rgba(255, 255, 255, 0.85);
 }
-/* A pick comes forward: a fuller wash of its stage colour, a brighter ring, a
-   wider stage edge and a real drop shadow, so it reads as lifted off the grid
-   rather than merely tinted. z-index keeps that shadow (and the gold halo of a
-   must-see) over the neighbouring sets instead of under them. */
+/* A pick comes forward hard: its stage colour at nearly full strength, a white
+   ring, a 5px stage edge, a deep drop shadow, and — the part you catch without
+   reading anything — it is physically bigger. The negative inline margin pushes
+   it 3px past the column on each side, so a pick breaks the grid's alignment
+   while everything unpicked stays inside it. z-index keeps that overhang, the
+   shadow and the gold halo of a must-see above the neighbouring sets. */
 .set.picked {
   z-index: 2;
-  border-left-width: 4px;
-  background: color-mix(in srgb, var(--stage) 68%, var(--panel));
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--stage) 75%, #fff) inset,
-    0 6px 18px rgba(0, 0, 0, 0.5);
+  margin-inline: -3px;
+  border-left-width: 5px;
+  background: color-mix(in srgb, var(--stage) 88%, var(--panel));
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.72) inset,
+    0 0 0 1px rgba(0, 0, 0, 0.55), 0 8px 22px rgba(0, 0, 0, 0.6);
 }
 .set.picked .set-band {
+  font-size: 0.78rem;
   font-weight: 800;
   color: #fff;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
 }
 .set.picked .set-time {
-  color: rgba(255, 255, 255, 0.9);
+  color: #fff;
+  font-weight: 700;
 }
 /* The other half of the contrast: on a day that already has picks, everything
-   unpicked settles back a shade. Done with colour rather than opacity so the
-   band names, pills and forecast stay perfectly readable — the line-up is still
-   browsable, it just stops competing with the plan. */
+   unpicked settles right back. Colour and size rather than opacity, so the band
+   names, pills and forecast stay readable — the line-up is still browsable, it
+   just stops competing with the plan. The 2px inline inset is the mirror of the
+   pick's overhang: unpicked sets sit narrower than their own column. */
 .timeline.has-picks .set:not(.picked) {
-  background: color-mix(in srgb, var(--stage) 13%, var(--panel));
-  border-left-color: color-mix(in srgb, var(--stage) 60%, var(--panel));
+  margin-inline: 2px;
+  background: color-mix(in srgb, var(--stage) 9%, var(--panel));
+  border-left-color: color-mix(in srgb, var(--stage) 45%, var(--panel));
+}
+/* Skip .cancelled — it owns filter for its own grayscale, and this rule's
+   higher specificity would otherwise cancel that out. */
+.timeline.has-picks .set:not(.picked):not(.cancelled) {
+  filter: saturate(0.75);
 }
 .timeline.has-picks .set:not(.picked) .set-band {
   font-weight: 600;
-  color: rgba(245, 243, 234, 0.8);
+  color: rgba(245, 243, 234, 0.72);
 }
 .timeline.has-picks .set:not(.picked) .set-pill {
-  filter: saturate(0.7) brightness(0.92);
+  opacity: 0.75;
 }
+/* Reaching for an unpicked set brings it all the way back — browsing the rest
+   of the line-up must never feel like fighting the styling. */
 .timeline.has-picks .set:not(.picked):hover,
 .timeline.has-picks .set:not(.picked):focus-visible {
-  background: color-mix(in srgb, var(--stage) 24%, var(--panel));
+  background: color-mix(in srgb, var(--stage) 26%, var(--panel));
+}
+.timeline.has-picks .set:not(.picked):not(.cancelled):hover,
+.timeline.has-picks .set:not(.picked):not(.cancelled):focus-visible {
+  filter: none;
+}
+.timeline.has-picks .set:not(.picked):hover .set-band,
+.timeline.has-picks .set:not(.picked):focus-visible .set-band {
+  color: var(--text);
+}
+.timeline.has-picks .set:not(.picked):hover .set-pill,
+.timeline.has-picks .set:not(.picked):focus-visible .set-pill {
+  opacity: 1;
 }
 
 .set.clashing {
@@ -1460,8 +1486,21 @@ button.bag-row {
   font-weight: 800;
   color: var(--danger);
 }
+/* The pick's own badge: a filled white disc, so "I chose this" is legible at a
+   glance against a set box that is now nearly full stage colour. */
 .set-flag.check {
-  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  top: 3px;
+  right: 4px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  font-size: 0.58rem;
+  color: color-mix(in srgb, var(--stage) 55%, #000);
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
 /* Genre caption under the band name — quiet, clips on short sets. */
 .set-genre {
@@ -2714,41 +2753,67 @@ button.bag-row {
 }
 
 /* ---------- must-see stars ---------- */
-/* A starred pick glows gold: the tier the day planner refuses to sacrifice, and
-   the loudest thing on the grid short of a clash warning. Gold edge, gold ring
-   inside and out, a soft halo around the box and a gold wash across the top
-   corner — visible at a glance while scrolling a full day.
+/* A starred pick is the loudest thing on the grid short of a clash warning: the
+   tier the day planner refuses to sacrifice, and it should be findable from
+   across the day without reading a word. A 6px gold edge, a gold ring inside
+   and a second one outside, a wide halo, and a gold wash across the top — the
+   whole box is gold-lit, not merely gold-trimmed.
 
    Scoped off .clashing so a starred set that clashes still turns red: the
    warning outranks the flattery. */
 .set.starred:not(.clashing) {
   z-index: 3;
-  border-left-color: var(--accent);
+  margin-inline: -4px;
+  border-left: 6px solid var(--accent);
   /* The wash is sized in pixels, not percentages: a percentage gradient would
      stretch over a 90-minute headline set and swamp its stage colour. */
-  background: linear-gradient(
-        150deg,
-        color-mix(in srgb, var(--accent) 48%, transparent),
-        transparent
-      )
-      top left / 100% 44px no-repeat,
-    color-mix(in srgb, var(--stage) 64%, var(--panel));
-  box-shadow: 0 0 0 2px var(--accent) inset,
-    0 0 0 1px color-mix(in srgb, var(--accent) 65%, transparent),
-    0 0 18px rgba(216, 194, 126, 0.45), 0 6px 18px rgba(0, 0, 0, 0.5);
+  /* Three layers: a dark scrim so the white name stays crisp over the gold, the
+     gold wash itself, then the stage colour. The wash is sized in pixels, not
+     percentages — a percentage gradient would stretch over a 90-minute headline
+     set and swamp its stage colour. */
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.34), transparent) top left /
+      100% 44px no-repeat,
+    linear-gradient(165deg, color-mix(in srgb, var(--accent) 78%, transparent), transparent)
+      top left / 100% 58px no-repeat,
+    color-mix(in srgb, var(--stage) 72%, var(--panel));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 90%, #fff) inset,
+    0 0 0 2px var(--accent), 0 0 26px rgba(216, 194, 126, 0.6),
+    0 8px 22px rgba(0, 0, 0, 0.6);
+  animation: star-glow 3s ease-in-out infinite;
+}
+/* A slow breath on the halo only — the box itself never moves, so a screenful
+   of must-sees reads as lit rather than as animation. */
+@keyframes star-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 90%, #fff) inset,
+      0 0 0 2px var(--accent), 0 0 18px rgba(216, 194, 126, 0.45),
+      0 8px 22px rgba(0, 0, 0, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 90%, #fff) inset,
+      0 0 0 2px var(--accent), 0 0 30px rgba(216, 194, 126, 0.75),
+      0 8px 22px rgba(0, 0, 0, 0.6);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .set.starred:not(.clashing) {
+    animation: none;
+  }
 }
 .set.starred .set-band {
+  font-size: 0.82rem;
   color: #fffdf3;
   letter-spacing: 0.01em;
-  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.55);
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.7);
 }
 /* The star sits inline before the name so it survives whatever the top-right
    flag corner is showing. */
 .set-band-star {
-  color: var(--accent);
-  margin-right: 3px;
-  font-size: 0.85em;
-  text-shadow: 0 0 7px rgba(216, 194, 126, 0.85);
+  color: #fff8e2;
+  margin-right: 4px;
+  font-size: 1.05em;
+  text-shadow: 0 0 8px var(--accent), 0 0 14px rgba(216, 194, 126, 0.8);
 }
 .set-pill.set-star {
   border: 1px solid rgba(255, 255, 255, 0.55);
@@ -2960,19 +3025,22 @@ button.bag-row {
 }
 /* Must-see rows in the day plan echo the timeline's gold treatment. */
 .planner-set.is-starred {
-  border-color: color-mix(in srgb, var(--accent) 50%, var(--line));
-  border-left-color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 70%, var(--line));
+  border-left: 5px solid var(--accent);
   background: linear-gradient(
     90deg,
-    color-mix(in srgb, var(--accent) 16%, var(--panel)),
-    var(--panel) 60%
+    color-mix(in srgb, var(--accent) 26%, var(--panel)),
+    var(--panel) 70%
   );
-  box-shadow: 0 0 10px rgba(216, 194, 126, 0.18);
+  box-shadow: 0 0 14px rgba(216, 194, 126, 0.3);
+}
+.planner-set.is-starred .planner-time {
+  color: var(--text);
 }
 .planner-star {
   color: var(--accent);
-  font-size: 0.8rem;
-  text-shadow: 0 0 7px rgba(216, 194, 126, 0.8);
+  font-size: 0.9rem;
+  text-shadow: 0 0 8px rgba(216, 194, 126, 0.9);
 }
 .planner-stage {
   margin-left: auto;
