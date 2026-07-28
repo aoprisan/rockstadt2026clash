@@ -365,7 +365,8 @@ function renderSetRow(entry: PlannedSet, afterGap: boolean): HTMLElement {
     li.appendChild(trans);
   }
 
-  const row = el('div', 'planner-set');
+  // Must-sees get a gold row, matching how they read on the timeline.
+  const row = el('div', entry.starred ? 'planner-set is-starred' : 'planner-set');
   row.style.setProperty('--c', entry.slot.stage.color);
   row.appendChild(el('span', 'planner-time', `${entry.slot.startLabel}–${entry.slot.endLabel}`));
   const band = el('span', 'planner-band', entry.slot.band);

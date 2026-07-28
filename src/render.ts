@@ -1216,6 +1216,10 @@ function renderTimeline(
 
   const grid = el('div', 'timeline');
   grid.style.height = `${height + HEADER_OFFSET}px`;
+  // Once the day has picks, the unpicked sets step back a shade (see
+  // .timeline.has-picks in style.css) so the chosen ones carry the eye. With
+  // nothing picked yet the full line-up stays at full strength.
+  if (visible.some((s) => selection.has(s.id))) grid.classList.add('has-picks');
 
   // hour gridlines + axis labels
   const axis = el('div', 'time-axis');
@@ -1324,7 +1328,16 @@ function renderSlot(
   );
   node.setAttribute('aria-pressed', String(picked));
 
-  const band = el('span', 'set-band', slot.band);
+  // A must-see wears its star next to the name, not in the top-right flag
+  // corner: that corner is shared with the clash, duel, walk and rating flags,
+  // so a starred set used to lose its star the moment any of those applied.
+  const band = el('span', 'set-band');
+  if (starred) {
+    const mark = el('span', 'set-band-star', '★');
+    mark.setAttribute('aria-hidden', 'true');
+    band.appendChild(mark);
+  }
+  band.appendChild(document.createTextNode(slot.band));
   node.appendChild(band);
 
   if (slot.genre) node.appendChild(el('span', 'set-genre', slot.genre));
@@ -1412,8 +1425,7 @@ function renderSlot(
     const flag = el('span', 'set-flag rate', `🤘${horns}`);
     flag.title = `You rated this ${horns}/5`;
     node.appendChild(flag);
-  } else if (starred) node.appendChild(el('span', 'set-flag star', '★'));
-  else if (picked) node.appendChild(el('span', 'set-flag check', '✓'));
+  } else if (picked) node.appendChild(el('span', 'set-flag check', '✓'));
 
   // Friend overlays: who else from your crew is at this set.
   if (friends.length > 0) {
