@@ -1,5 +1,5 @@
-import { DAYS, FESTIVAL, DATA_VERSION } from './data';
-import type { FestivalDay, SetSlot } from './types';
+import { DAYS, FESTIVAL, DATA_VERSION, STAGES } from './data';
+import type { FestivalDay, SetSlot, StageId } from './types';
 import {
   buildSlots,
   findClashes,
@@ -65,6 +65,13 @@ import { openDelays } from './delays-panel';
 import { patchCount } from './delays';
 import { openSetlist } from './setlist-panel';
 import { bandSetlist } from './setlists';
+import {
+  isCustomStageOrder,
+  resetStageOrder,
+  stageOrder,
+  subscribeStageOrder,
+} from './stage-order';
+import { attachStageReorder } from './stage-drag';
 
 // Vertical scale of the timeline. Sized so even the shortest set on the poster
 // (Heavy//Hitter, 40 min) is tall enough to hold its full content — a
@@ -156,6 +163,10 @@ export function mount(root: HTMLElement): void {
     renderContent(main);
     refreshChrome();
   });
+
+  // Dragging a stage column into a new place repaints the grid from the new
+  // order — nothing else in the app depends on it.
+  subscribeStageOrder(() => renderContent(main));
 
   // Ratings show on the timeline, and the journal button's dot tracks them.
   subscribeJournal(() => {
@@ -1249,11 +1260,14 @@ function renderTimeline(
   grid.appendChild(nowLine);
   positionNowLine(nowLine);
 
-  // stage columns
-  const cols = el('div', 'stage-cols');
+  // Stage columns, left to right in whatever order the user has dragged them
+  // into (defaulting to the festival's own layout).
+  const order = stageOrder();
 
-  for (const stageKey of ['rugina', 'brasov', 'calmuc'] as const) {
+  const cols = el('div', 'stage-cols');
+  for (const stageKey of order) {
     const col = el('div', 'stage-col');
+    col.dataset.stage = stageKey;
     col.style.setProperty('--stage', stageColor(stageKey));
     const colSlots = visible.filter((s) => s.stage.id === stageKey);
     for (const slot of colSlots) {
@@ -1263,18 +1277,52 @@ function renderTimeline(
   }
   grid.appendChild(cols);
 
-  // sticky stage header
-  const header = el('div', 'stage-header');
-  for (const stageKey of ['rugina', 'brasov', 'calmuc'] as const) {
-    const h = el('div', 'stage-name');
-    h.style.setProperty('--stage', stageColor(stageKey));
-    h.textContent = stageShort(stageKey);
-    header.appendChild(h);
-  }
-
-  wrap.appendChild(header);
+  wrap.appendChild(renderStageHeader(order, cols));
   wrap.appendChild(grid);
   return wrap;
+}
+
+/**
+ * The sticky row of stage names above the grid — and the handle for reordering
+ * it. Each name is a button you can drag sideways (or nudge with the arrow
+ * keys); its whole column of sets travels with it.
+ */
+function renderStageHeader(order: StageId[], cols: HTMLElement): HTMLElement {
+  const header = el('div', 'stage-header');
+
+  // The 44px lead-in lines the names up with the grid past the time axis, and
+  // doubles as the home for the "back to the festival layout" undo.
+  const lead = el('div', 'stage-header-lead');
+  if (isCustomStageOrder()) {
+    const reset = el('button', 'stage-reset', '↺');
+    reset.type = 'button';
+    reset.title = 'Put the stages back in the festival’s own order';
+    reset.setAttribute('aria-label', 'Reset stage order to the festival layout');
+    reset.addEventListener('click', () => resetStageOrder());
+    lead.appendChild(reset);
+  }
+  header.appendChild(lead);
+
+  const names = el('div', 'stage-names');
+  names.setAttribute('role', 'group');
+  names.setAttribute('aria-label', 'Stage columns — drag a name to rearrange them');
+  order.forEach((stageKey, i) => {
+    const h = el('button', 'stage-name');
+    h.type = 'button';
+    h.dataset.stage = stageKey;
+    h.style.setProperty('--stage', stageColor(stageKey));
+    h.textContent = stageShort(stageKey);
+    h.title = `${STAGES[stageKey].name} — drag to move this column, or use the arrow keys`;
+    h.setAttribute(
+      'aria-label',
+      `${STAGES[stageKey].name}, column ${i + 1} of ${order.length}. Drag, or press the left and right arrow keys, to move it.`,
+    );
+    names.appendChild(h);
+  });
+  header.appendChild(names);
+
+  attachStageReorder(names, cols);
+  return header;
 }
 
 function renderSlot(

@@ -35,6 +35,11 @@ const SECTIONS: GuideSection[] = [
         body: 'The timeline shows all three stages side by side, one tab per festival day. Tap any set to add it to your line-up; tap the ★ on a picked set to mark it a must-see. Everything saves on this device — no account, no sign-up.',
       },
       {
+        icon: '↔',
+        title: 'Rearrange the stages',
+        body: 'The columns start in the festival’s own layout — Andrei Calmuc, Adrian Rugină, Brașov. Drag a stage name sideways (or focus it and press ← / →) to put them in whatever order suits you; the ↺ next to the names puts them back.',
+      },
+      {
         icon: '⚠️',
         title: 'Clashes find themselves',
         body: 'Two picks that overlap turn red; two on different stages with too little time to walk between them turn amber. The header counts both while you plan.',
