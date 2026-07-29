@@ -21,7 +21,17 @@ import type { LastSetlist } from './types';
  *    averages and "songs they usually play" are deliberately not recorded here:
  *    this table only holds real, single-night setlists.
  *
- * Coverage is partial — 45 of the 85 acts. It is thin exactly where the record
+ * Two failure modes are worth naming, because both have produced convincing
+ * wrong lists here and both are caught the same way — by checking every title
+ * against the band's own discography before an entry is written:
+ *
+ * - The support act's set. A shared bill returns whichever list is indexed
+ *   nearest the gig, so Death Angel first came back with Vio-lence's album set
+ *   and Orbit Culture with Ov Sulfur's. Both were dropped.
+ * - Titles that do not exist. A list can arrive in plausible order with songs
+ *   the band never wrote; Slow Crush's "Sacramento" set had three. Dropped too.
+ *
+ * Coverage is partial — 54 of the 85 acts. It is thin exactly where the record
  * is thin: the Romanian and small-club openers (Pârnaie, Machukha, Hvnds,
  * Underwaves and the like) have no transcribed gig anywhere, and a few touring
  * bands only have partial or clearly garbled entries, which are left out rather
@@ -301,6 +311,27 @@ export const LAST_SETLISTS: Record<string, LastSetlist> = {
       'https://www.setlist.fm/setlist/creeper/2026/o2-academy-oxford-o2-academy-2-oxford-england-234df4ff.html',
   },
 
+  Cryptopsy: {
+    date: '2026-02-15',
+    venue: 'Petit Bain',
+    city: 'Paris, FR',
+    songs: [
+      'Slit Your Guts',
+      "Until There's Nothing Left",
+      'Serial Messiah',
+      'Dead Eyes Replete',
+      'Benedictine Convulsions',
+      'Graves of the Fathers',
+      'Godless Deceiver',
+      'Crown of Horns',
+      'Phobophile',
+      'Orgiastic Disembowelment',
+      'Malicious Needs',
+    ],
+    source:
+      'https://www.setlist.fm/setlist/cryptopsy/2026/petit-bain-paris-france-2340ac2b.html',
+  },
+
   Deafheaven: {
     date: '2026-07-10',
     venue: 'Liberty Hall',
@@ -320,6 +351,49 @@ export const LAST_SETLISTS: Record<string, LastSetlist> = {
     ],
     source:
       'https://www.setlist.fm/setlist/deafheaven/2026/liberty-hall-sydney-australia-43490767.html',
+  },
+
+  'Death Angel': {
+    date: '2025-06-06',
+    event: 'Rock Hard Festival 2025',
+    venue: 'Amphitheater Gelsenkirchen',
+    city: 'Gelsenkirchen, DE',
+    songs: [
+      'Mistress of Pain',
+      'Voracious Souls',
+      'I Came for Blood',
+      'Buried Alive',
+      'The Dream Calls for Blood',
+      'Caster of Shame',
+      'The Moth',
+      'Wrath (Bring Fire)',
+      'Thrown to the Wolves / The Ultra-Violence',
+    ],
+    source:
+      'https://www.setlist.fm/setlist/death-angel/2025/amphitheater-gelsenkirchen-gelsenkirchen-germany-6b58fe16.html',
+  },
+
+  Decapitated: {
+    date: '2025-08-03',
+    event: 'Vagos Metal Fest 2025',
+    venue: 'Quinta do Ega',
+    city: 'Vagos, PT',
+    songs: [
+      'A Poem About an Old Prison Man',
+      'Just a Cigarette',
+      'Earth Scar',
+      'The Blasphemous Psalm to the Dummy God Creation',
+      'Last Supper',
+      'Names',
+      'Spheres of Madness',
+      'Cancer Culture',
+      '404',
+      'Kill the Cult',
+      'Suicidal Space Programme',
+      'Iconoclast',
+    ],
+    source:
+      'https://www.setlist.fm/setlist/decapitated/2025/quinta-do-ega-vagos-portugal-2b46502a.html',
   },
 
   Deicide: {
@@ -476,6 +550,47 @@ export const LAST_SETLISTS: Record<string, LastSetlist> = {
       'And Here I Die',
     ],
     source: 'https://www.setlist.fm/setlists/grave-1bd6fdc4.html',
+  },
+
+  Groza: {
+    date: '2025-02-15',
+    event: 'Black Orange Fest 2025',
+    venue: '16 Toneladas',
+    city: 'Valencia, ES',
+    songs: [
+      'Soul : Inert',
+      'Asbest',
+      'Elegance of Irony',
+      'The Redemptive End',
+      'Dysthymian Dreams',
+      'Unified in Void',
+      'Deluge',
+      'Daffodils',
+    ],
+    source:
+      'https://www.setlist.fm/setlist/groza/2025/16-toneladas-valencia-spain-135a41e5.html',
+  },
+
+  Gutalax: {
+    date: '2025-10-24',
+    venue: 'Paavli Kultuurivabrik',
+    city: 'Tallinn, EE',
+    songs: [
+      'Ghostbusters',
+      'Assmeralda',
+      'Nosím místo ponožky kousek svojí předkožky',
+      'Poopcorn',
+      'Buttman',
+      'Celebration',
+      'Šoustání prdele za slunné neděle',
+      'Robocock',
+      'Diarrhero',
+      'Vaginapocalypse',
+      'Fart and Furious',
+      'Total Rectal',
+    ],
+    source:
+      'https://www.setlist.fm/setlist/gutalax/2025/paavli-kultuurivabrik-tallinn-estonia-2350f8bf.html',
   },
 
   Hatebreed: {
@@ -707,6 +822,27 @@ export const LAST_SETLISTS: Record<string, LastSetlist> = {
     source: 'https://www.setlist.fm/setlists/majestica-63d7a2ef.html',
   },
 
+  Malevolence: {
+    date: '2026-05-24',
+    event: 'Slam Dunk Festival Leeds 2026',
+    venue: 'Temple Newsam',
+    city: 'Leeds, GB',
+    songs: [
+      'Trenches',
+      'Life Sentence',
+      'So Help Me God',
+      'Karma',
+      'Self Supremacy',
+      'Higher Place',
+      'Keep Your Distance',
+      'Serpents Chokehold',
+      'On Broken Glass',
+      "If It's All the Same to You",
+    ],
+    source:
+      'https://www.setlist.fm/setlist/malevolence/2026/temple-newsam-leeds-england-3b4fb86c.html',
+  },
+
   'Marilyn Manson': {
     date: '2026-07-08',
     event: 'Festival de Nîmes 2026',
@@ -735,6 +871,28 @@ export const LAST_SETLISTS: Record<string, LastSetlist> = {
   },
 
   // The reunited line-up's first show back, five days before this festival.
+  'Municipal Waste': {
+    date: '2025-12-11',
+    venue: 'Bowery Electric',
+    city: 'New York, NY, US',
+    songs: [
+      'Hell Bent for Leather',
+      'Waste In Space',
+      'Garbage Stomp',
+      'Mind Eraser',
+      'Grave Dive',
+      'Breathe Grease',
+      "You're Cut Off",
+      "The Thrashin' of the Christ",
+      'Poison the Preacher',
+      'Headbanger Face Rip',
+      'Blood Vessel',
+      'Sadistic Magician',
+    ],
+    source:
+      'https://www.setlist.fm/setlist/municipal-waste/2025/bowery-electric-new-york-ny-34c2d83.html',
+  },
+
   Nevermore: {
     date: '2026-07-26',
     event: 'Hills of Rock 2026',
@@ -896,6 +1054,29 @@ export const LAST_SETLISTS: Record<string, LastSetlist> = {
       'https://www.setlist.fm/setlist/satyricon/2026/parksnackan-uppsala-sweden-13761d79.html',
   },
 
+  'Slaughter To Prevail': {
+    date: '2026-04-02',
+    venue: 'Hollywood Palladium',
+    city: 'Los Angeles, CA, US',
+    songs: [
+      'Bonebreaker',
+      'Banditos',
+      'Russian Grizzly in America',
+      'Viking',
+      'Imdead',
+      'Babayka',
+      'Bratva',
+      'Baba Yaga',
+      'Koschei',
+      'Conflict',
+      'Kid of Darkness',
+      'Behelit',
+      'Demolisher',
+    ],
+    source:
+      'https://www.setlist.fm/setlist/slaughter-to-prevail/2026/hollywood-palladium-los-angeles-ca-734c6ad9.html',
+  },
+
   Soulfly: {
     date: '2026-04-29',
     venue: 'The Fillmore',
@@ -962,6 +1143,27 @@ export const LAST_SETLISTS: Record<string, LastSetlist> = {
       'Engine 45',
     ],
     source: 'https://www.setlist.fm/setlists/the-ghost-inside-bd7e5da.html',
+  },
+
+  'Thy Art Is Murder': {
+    date: '2025-11-16',
+    venue: 'Lille Vega',
+    city: 'Copenhagen, DK',
+    songs: [
+      'Blood Throne',
+      'Join Me in Armageddon',
+      'Death Squad Anthem',
+      'Make America Hate Again',
+      'Holy War',
+      'Fur and Claw',
+      'Slaves Beyond Death',
+      'The Purest Strain of Hate',
+      'Destroyer of Dreams',
+      'Godlike',
+      'Keres',
+      'Puppet Master',
+    ],
+    source: 'https://www.setlist.fm/setlists/thy-art-is-murder-63d5aed7.html',
   },
 
   Tribulation: {
