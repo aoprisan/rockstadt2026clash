@@ -1,6 +1,6 @@
 import { DAYS } from './data';
 import type { FestivalDay } from './types';
-import { buildSlots, fmtDuration, subscribeSchedule, walkMinutes } from './schedule';
+import { currentDayId, fmtDuration, subscribeSchedule, walkMinutes } from './schedule';
 import { planDay, type PlannedSet } from './planner';
 import { selection } from './store';
 import { subscribeDuels } from './duel';
@@ -97,25 +97,6 @@ function stateAt(legs: Leg[], nowMs: number): ApState {
   return { kind: 'done' };
 }
 
-/**
- * Which day the pilot should open on: the day whose show window (first note to
- * last note, padded) contains now; else the next day still to come; else the
- * final day (post-festival it shows the wrap).
- */
-export function autoDayId(nowMs: number): string {
-  const PAD = 6 * 3600_000; // treat "the day" as running well past midnight
-  for (const day of DAYS) {
-    const slots = buildSlots(day);
-    const from = Math.min(...slots.map((s) => s.startAt.getTime())) - PAD;
-    const to = Math.max(...slots.map((s) => s.endAt.getTime())) + PAD;
-    if (nowMs >= from && nowMs <= to) return day.id;
-  }
-  const upcoming = DAYS.find(
-    (day) => Math.min(...buildSlots(day).map((s) => s.startAt.getTime())) > nowMs,
-  );
-  return (upcoming ?? DAYS[DAYS.length - 1]).id;
-}
-
 /* ---------- formatting ---------- */
 
 const timeLabel = (ms: number): string => {
@@ -165,7 +146,7 @@ const el = <K extends keyof HTMLElementTagNameMap>(
 };
 
 export function openAutopilot(): void {
-  dayId = autoDayId(Date.now());
+  dayId = currentDayId(Date.now());
   legsStale = true;
   firedAlerts.clear();
   if (!dialog) dialog = buildDialog();
