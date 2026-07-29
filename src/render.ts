@@ -2,6 +2,7 @@ import { DAYS, FESTIVAL, DATA_VERSION, STAGES } from './data';
 import type { FestivalDay, SetSlot, StageId } from './types';
 import {
   buildSlots,
+  currentDayId,
   findClashes,
   findTightTransitions,
   tightIds,
@@ -10,6 +11,7 @@ import {
   festivalInstant,
   minutesToLabel,
   subscribeSchedule,
+  todayDayId,
   toMinutes,
   ALL_SLOTS,
 } from './schedule';
@@ -82,7 +84,10 @@ import { attachStageReorder } from './stage-drag';
 const PX_PER_MIN = 3.8;
 const HEADER_OFFSET = 0;
 
-let activeDayId = loadActiveDay(DAYS[0].id);
+// Open on the day that's actually happening — today's during the festival, the
+// next one still to come before it starts — unless you left the app parked on
+// another day earlier the same day (see `loadActiveDay`).
+let activeDayId = loadActiveDay(currentDayId(Date.now()));
 let onlyPicks = false;
 // The filters / picks / clashes panel under the day tabs is folded away by
 // default; the header keeps showing live pick + clash counts while it's closed.
@@ -205,6 +210,7 @@ export function mount(root: HTMLElement): void {
     positionNowLine();
     renderLiveBar();
     updateJournalDot(); // sets finish while the app sits open
+    markTodayTab(); // and the festival day itself rolls over
   }, 30_000);
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
@@ -239,6 +245,7 @@ function renderHeader(): HTMLElement {
 function renderDayTabs(): HTMLElement {
   const nav = el('nav', 'day-tabs');
   nav.setAttribute('aria-label', 'Festival days');
+  const today = todayDayId(Date.now());
   for (const day of DAYS) {
     const btn = el('button', 'day-tab', day.label);
     btn.dataset.day = day.id;
@@ -249,10 +256,14 @@ function renderDayTabs(): HTMLElement {
       date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
     );
     btn.appendChild(small);
+    if (day.id === today) {
+      btn.classList.add('is-today');
+      btn.title = 'Today';
+    }
     if (day.id === activeDayId) btn.classList.add('active');
     btn.addEventListener('click', () => {
       activeDayId = day.id;
-      saveActiveDay(day.id);
+      saveActiveDay(day.id, currentDayId(Date.now()));
       refreshChrome();
       renderContent(document.getElementById('content') as HTMLElement);
     });
@@ -645,6 +656,17 @@ function updateJournalDot(): void {
   const btn = document.getElementById('journal-btn');
   if (!btn) return;
   btn.classList.toggle('has-dot', unratedCount(Date.now()) > 0);
+}
+
+/** Keep the "today" tab marker honest while the app sits open past midnight. */
+function markTodayTab(): void {
+  const today = todayDayId(Date.now());
+  document.querySelectorAll<HTMLButtonElement>('.day-tab').forEach((btn) => {
+    const isToday = btn.dataset.day === today;
+    btn.classList.toggle('is-today', isToday);
+    if (isToday) btn.title = 'Today';
+    else btn.removeAttribute('title');
+  });
 }
 
 function refreshChrome(): void {
@@ -1921,7 +1943,7 @@ function jumpToSlot(slot: SetSlot): void {
   }
   if (activeDayId !== slot.dayId) {
     activeDayId = slot.dayId;
-    saveActiveDay(slot.dayId);
+    saveActiveDay(slot.dayId, currentDayId(Date.now()));
   }
   refreshChrome();
   renderContent(document.getElementById('content') as HTMLElement);

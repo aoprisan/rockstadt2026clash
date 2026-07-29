@@ -83,6 +83,44 @@ export function buildSlots(day: FestivalDay): SetSlot[] {
 }
 
 /**
+ * A day's show window: first note to last note, padded either side so the small
+ * hours after midnight — and the slow morning that follows — still count as
+ * part of "that day" rather than the next one.
+ */
+const DAY_PAD_MS = 6 * 3600_000;
+
+function dayWindow(day: FestivalDay): { from: number; to: number } {
+  const slots = buildSlots(day);
+  return {
+    from: Math.min(...slots.map((s) => s.startAt.getTime())) - DAY_PAD_MS,
+    to: Math.max(...slots.map((s) => s.endAt.getTime())) + DAY_PAD_MS,
+  };
+}
+
+/**
+ * The festival day under way right now, or `null` outside the show windows
+ * (before the gates open, between days, and once it's all over).
+ */
+export function todayDayId(nowMs: number): string | null {
+  for (const day of DAYS) {
+    const { from, to } = dayWindow(day);
+    if (nowMs >= from && nowMs <= to) return day.id;
+  }
+  return null;
+}
+
+/**
+ * The day to open on: the one under way, else the next day still to come, else
+ * — once the festival is over — the final day.
+ */
+export function currentDayId(nowMs: number): string {
+  const today = todayDayId(nowMs);
+  if (today) return today;
+  const upcoming = DAYS.find((day) => dayWindow(day).from > nowMs);
+  return (upcoming ?? DAYS[DAYS.length - 1]).id;
+}
+
+/**
  * The whole bill, patches included. Rebuilt **in place** whenever a patch
  * lands: every module imports this binding directly, and the share-link codec
  * indexes picks by position in it, so the array's identity, order and length

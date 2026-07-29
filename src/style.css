@@ -202,6 +202,22 @@ body {
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   border-color: transparent;
 }
+/* The day actually happening right now — the one the app opens on. */
+.day-tab.is-today {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.day-tab.is-today .day-date::after {
+  content: ' · today';
+  color: var(--accent);
+  font-weight: 700;
+}
+.day-tab.is-today.active {
+  color: #0a0a0c;
+}
+.day-tab.is-today.active .day-date::after {
+  color: inherit;
+}
 
 /* ---------- collapsible controls panel ----------
    Folds the filters, search, options, Clear all, the now/next live bar and the

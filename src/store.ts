@@ -1,6 +1,8 @@
 const KEY = 'ref2026.selection.v1';
 const STAR_KEY = 'ref2026.stars.v1';
 const DAY_KEY = 'ref2026.activeDay.v1';
+/** Which festival day was current when the day above was chosen. */
+const DAY_STAMP_KEY = 'ref2026.activeDayFor.v1';
 const SEEN_VERSION_KEY = 'ref2026.dataVersion.v1';
 
 type Listener = () => void;
@@ -97,17 +99,26 @@ function load(key: string): string[] {
 
 export const selection = new SelectionStore();
 
-export function loadActiveDay(fallback: string): string {
+/**
+ * The day to open on. A day you tapped to is remembered only for as long as the
+ * festival day it was chosen on is still the current one — so flicking ahead to
+ * Day 4 while Day 2 is running survives a reload, but starting the app fresh on
+ * Day 3 lands you on Day 3 rather than on last night's browsing.
+ */
+export function loadActiveDay(current: string): string {
   try {
-    return localStorage.getItem(DAY_KEY) || fallback;
+    const stored = localStorage.getItem(DAY_KEY);
+    if (!stored) return current;
+    return localStorage.getItem(DAY_STAMP_KEY) === current ? stored : current;
   } catch {
-    return fallback;
+    return current;
   }
 }
 
-export function saveActiveDay(id: string): void {
+export function saveActiveDay(id: string, current: string): void {
   try {
     localStorage.setItem(DAY_KEY, id);
+    localStorage.setItem(DAY_STAMP_KEY, current);
   } catch {
     /* ignore */
   }
