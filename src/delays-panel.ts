@@ -148,7 +148,9 @@ function repaint(): void {
   const slots = buildSlots(day);
   const patched = slots.filter((s) => s.shift || s.cancelled);
   if (patched.length > 0) {
-    body.appendChild(el('p', 'delays-section', 'Patched on this day'));
+    // "Changed", not "patched": the list can hold a cancellation the festival
+    // announced as well as the slips you logged yourself.
+    body.appendChild(el('p', 'delays-section', 'Changed on this day'));
     const ul = el('ul', 'delays-patched');
     for (const slot of patched) {
       const li = el('li', 'delays-patched-item');
@@ -160,7 +162,9 @@ function repaint(): void {
           'span',
           'delays-patched-why',
           slot.cancelled
-            ? 'cancelled — not happening'
+            ? slot.offReason
+              ? `cancelled by the festival — ${slot.offReason}`
+              : 'cancelled — not happening'
             : `now ${slot.startLabel}–${slot.endLabel} · ${slot.shift > 0 ? `${slot.shift}m late` : `${-slot.shift}m early`}`,
         ),
       );
@@ -271,9 +275,13 @@ function renderSetList(dayId: string): HTMLElement {
     }
     const off = el('button', 'delays-mini is-off', isCancelled(slot.id) ? '↩' : '✕');
     off.type = 'button';
-    off.title = isCancelled(slot.id)
-      ? `${slot.band} is back on`
-      : `${slot.band} isn’t happening`;
+    // A set the festival pulled isn't yours to put back on.
+    off.disabled = Boolean(slot.offReason);
+    off.title = slot.offReason
+      ? `${slot.band} was cancelled by the festival — ${slot.offReason}`
+      : isCancelled(slot.id)
+        ? `${slot.band} is back on`
+        : `${slot.band} isn’t happening`;
     off.addEventListener('click', () => toggleCancelled(slot.id));
     actions.appendChild(off);
     li.appendChild(actions);

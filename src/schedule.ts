@@ -51,7 +51,9 @@ export function bandLink(band: string, link?: string): string {
  * Build a day's slots with the running-order patches applied: a stage running
  * late shifts every set on it that hadn't started when the slip was logged, a
  * per-set nudge overrides that, and a cancelled set stays in the grid (struck
- * through) so the pick and its history survive being un-cancelled.
+ * through) so the pick and its history survive being un-cancelled. A set the
+ * festival itself has pulled is cancelled the same way, but from the data
+ * rather than from local patches, so it lands on every device.
  */
 export function buildSlots(day: FestivalDay): SetSlot[] {
   const slots: SetSlot[] = [];
@@ -75,7 +77,8 @@ export function buildSlots(day: FestivalDay): SetSlot[] {
         startAt: new Date(festivalInstant(day.date, raw.start).getTime() + shift * 60_000),
         endAt: new Date(festivalInstant(day.date, raw.end).getTime() + shift * 60_000),
         shift,
-        cancelled: isCancelled(id),
+        cancelled: Boolean(raw.cancelled) || isCancelled(id),
+        ...(raw.cancelled ? { offReason: raw.cancelled } : {}),
       });
     }
   }

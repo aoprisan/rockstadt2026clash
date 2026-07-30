@@ -12,7 +12,7 @@ export const FESTIVAL = {
  * re-timed). Returning visitors whose last-seen stamp differs get a one-time
  * "running order updated" banner so stale plans don't go unnoticed.
  */
-export const DATA_VERSION = '2026-07-23';
+export const DATA_VERSION = '2026-07-30';
 
 export const STAGES: Record<StageId, Stage> = {
   rugina: { id: 'rugina', name: 'Adrian Rugină Stage', color: '#7ec524' },
@@ -123,7 +123,9 @@ export const DAYS: FestivalDay[] = [
         { band: 'Satyricon', start: '00:10', end: '01:10' },
       ],
       brasov: [
-        { band: 'Crippling Alcoholism', start: '14:30', end: '15:15' },
+        // Pulled on 30 July: a band member is recovering and unable to travel.
+        // Main Stage still opens at 15:20 with Raised By Owls, gates at 14:00.
+        { band: 'Crippling Alcoholism', start: '14:30', end: '15:15', cancelled: 'health reasons' },
         { band: 'Serrabulho', start: '16:10', end: '17:00' },
         { band: 'Northlane', start: '17:50', end: '18:40' },
         { band: 'Airbourne', start: '19:50', end: '20:55' },
