@@ -13,6 +13,13 @@ export interface RawSet {
   end: string;
   /** Official website or social media URL. Falls back to a web search. */
   link?: string;
+  /**
+   * Set the festival has pulled, and the announced reason (e.g. "health
+   * reasons"). The set stays in the running order, struck through, rather than
+   * being deleted: picks, shared links and history that point at it survive,
+   * and someone holding the printed poster can still see what happened to it.
+   */
+  cancelled?: string;
 }
 
 /** Optional per-band descriptive metadata, keyed by band name in band-meta.ts. */
@@ -76,4 +83,9 @@ export interface SetSlot {
   shift: number;
   /** True when the set has been marked as not happening at all. */
   cancelled: boolean;
+  /**
+   * Set when the *festival* pulled the set rather than the user: the announced
+   * reason. These can't be un-cancelled from the running-order panel.
+   */
+  offReason?: string;
 }

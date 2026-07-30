@@ -1387,7 +1387,11 @@ function renderSlot(
     }${benchedBy ? `, benched — you chose ${benchedBy.band} in the clash duel` : ''}${
       isSplit ? ', part of a clash-duel split' : ''
     }${isTight ? ', tight walk from your previous pick' : ''}${
-      slot.cancelled ? ', cancelled — not happening' : ''
+      slot.cancelled
+        ? slot.offReason
+          ? `, cancelled by the festival — ${slot.offReason}`
+          : ', cancelled — not happening'
+        : ''
     }${
       slot.shift
         ? `, running ${Math.abs(slot.shift)} minutes ${slot.shift > 0 ? 'late' : 'early'}`
@@ -1420,7 +1424,9 @@ function renderSlot(
   // time that silently disagrees with the poster is worse than no time at all.
   if (slot.cancelled) {
     const chip = el('span', 'set-patch is-off', '✕ cancelled');
-    chip.title = 'Marked as not happening. Un-mark it in ⏱ Running order.';
+    chip.title = slot.offReason
+      ? `Cancelled by the festival — ${slot.offReason}. This set is not happening.`
+      : 'Marked as not happening. Un-mark it in ⏱ Running order.';
     timeRow.appendChild(chip);
   } else if (slot.shift) {
     const chip = el(
@@ -1583,6 +1589,24 @@ function renderSlot(
 }
 
 /* ---------- data-update banner ---------- */
+
+/**
+ * A band dropping off the bill is the one running-order change you can't fix by
+ * re-reading the grid, so if it was one of *your* picks the banner names it
+ * instead of leaving you to spot the strike-through.
+ */
+function updateBannerText(): string {
+  const dropped = ALL_SLOTS.filter((s) => s.offReason && selection.has(s.id));
+  if (dropped.length === 1) {
+    const [s] = dropped;
+    return `${s.band} is off the bill (${s.offReason}) — that pick isn’t happening.`;
+  }
+  if (dropped.length > 1) {
+    return `${dropped.map((s) => s.band).join(', ')} are off the bill — those picks aren’t happening.`;
+  }
+  return 'Running order updated — some set times may have changed. Double-check your picks.';
+}
+
 function renderUpdateBanner(): void {
   const host = document.getElementById('update-banner');
   if (!host) return;
@@ -1600,13 +1624,7 @@ function renderUpdateBanner(): void {
   const bar = el('div', 'update-banner');
   bar.setAttribute('role', 'status');
   bar.appendChild(el('span', 'update-banner-icon', '↻'));
-  bar.appendChild(
-    el(
-      'span',
-      'update-banner-text',
-      'Running order updated — some set times may have changed. Double-check your picks.',
-    ),
-  );
+  bar.appendChild(el('span', 'update-banner-text', updateBannerText()));
   const dismiss = el('button', 'update-banner-close', '✕');
   dismiss.setAttribute('aria-label', 'Dismiss');
   dismiss.addEventListener('click', () => {
