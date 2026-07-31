@@ -12,7 +12,7 @@ export const FESTIVAL = {
  * re-timed). Returning visitors whose last-seen stamp differs get a one-time
  * "running order updated" banner so stale plans don't go unnoticed.
  */
-export const DATA_VERSION = '2026-07-30';
+export const DATA_VERSION = '2026-07-31';
 
 export const STAGES: Record<StageId, Stage> = {
   rugina: { id: 'rugina', name: 'Adrian Rugină Stage', color: '#7ec524' },
@@ -151,7 +151,10 @@ export const DAYS: FestivalDay[] = [
       rugina: [
         { band: 'Pârnaie', start: '15:00', end: '15:45' },
         { band: 'Decapitated', start: '16:40', end: '17:25' },
-        { band: 'Periphery', start: '18:25', end: '19:25' },
+        // Swapped with Periphery on 31 July: flight delays held Periphery up, so
+        // Hvnds takes this Main Stage hour and Periphery plays the 22:00 Calmuc
+        // slot Hvnds had. Same two slots, traded — nothing else on the day moves.
+        { band: 'Hvnds', start: '18:25', end: '19:25' },
         { band: 'Grandson', start: '20:40', end: '21:40' },
         { band: 'The Prodigy', start: '23:00', end: '00:30' },
       ],
@@ -168,7 +171,8 @@ export const DAYS: FestivalDay[] = [
         { band: 'Voivod', start: '17:40', end: '18:30' },
         { band: 'Evergrey', start: '19:00', end: '20:00' },
         { band: 'Left To Die', start: '20:30', end: '21:30' },
-        { band: 'Hvnds', start: '22:00', end: '23:00' },
+        // See the Rugină stage above: Periphery and Hvnds traded slots on the day.
+        { band: 'Periphery', start: '22:00', end: '23:00' },
         { band: 'Insomnium', start: '23:30', end: '00:30' },
         { band: 'Sventevith', start: '01:00', end: '02:00' },
       ],
