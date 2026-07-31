@@ -223,6 +223,13 @@ Returning visitors whose device last saw an older stamp then get a one-time
 and curated listen links live in `src/band-meta.ts` (keyed by band name);
 bands without an entry fall back to a Spotify search.
 
+A slot id is `dayId::stage::band`, so moving a set to another stage changes its
+id and would orphan every pick, star, rating and crew overlay filed under the
+old one. `src/moved-sets.ts` runs before any store reads `localStorage` — hence
+its import at the very top of `main.ts` — and rewrites stored ids onto the id
+each band's set has now, deriving the mapping from the running order rather than
+from a hardcoded list. Picks that moved are named in the update banner.
+
 `src/data.ts` is the poster; `src/delays.ts` is the night. Patches logged in
 **⏱ Running order** are applied in `schedule.ts` as slots are built, so every
 consumer — clashes, planner, pilot, reminders, calendar, stamina — sees the

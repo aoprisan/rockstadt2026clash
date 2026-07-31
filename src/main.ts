@@ -1,4 +1,8 @@
 import './style.css';
+// Must stay above every module that touches storage: it runs as an import side
+// effect, moving picks, stars and history onto the ids of sets that changed
+// stage, before the stores read those ids in.
+import './moved-sets';
 import { mount } from './render';
 import { init as initNotifications } from './notify';
 import { importPicksFromUrl } from './picks-link';

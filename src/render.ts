@@ -15,6 +15,7 @@ import {
   toMinutes,
   ALL_SLOTS,
 } from './schedule';
+import { movedPicks } from './moved-sets';
 import * as buses from './buses';
 import { openPlanner } from './planner';
 import { openAutopilot } from './autopilot';
@@ -1591,19 +1592,37 @@ function renderSlot(
 /* ---------- data-update banner ---------- */
 
 /**
- * A band dropping off the bill is the one running-order change you can't fix by
- * re-reading the grid, so if it was one of *your* picks the banner names it
- * instead of leaving you to spot the strike-through.
+ * A band dropping off the bill — or moving to another stage — is the one kind of
+ * running-order change you can't fix by re-reading the grid, so if it was one of
+ * *your* picks the banner names it instead of leaving you to spot the
+ * strike-through, or to find out in front of the wrong stage.
  */
 function updateBannerText(): string {
   const dropped = ALL_SLOTS.filter((s) => s.offReason && selection.has(s.id));
+  const moved = ALL_SLOTS.filter((s) => movedPicks().has(s.id));
+  const notes: string[] = [];
+
   if (dropped.length === 1) {
     const [s] = dropped;
-    return `${s.band} is off the bill (${s.offReason}) — that pick isn’t happening.`;
+    notes.push(`${s.band} is off the bill (${s.offReason}) — that pick isn’t happening.`);
+  } else if (dropped.length > 1) {
+    notes.push(
+      `${dropped.map((s) => s.band).join(', ')} are off the bill — those picks aren’t happening.`,
+    );
   }
-  if (dropped.length > 1) {
-    return `${dropped.map((s) => s.band).join(', ')} are off the bill — those picks aren’t happening.`;
+
+  if (moved.length === 1) {
+    const [s] = moved;
+    notes.push(
+      `${s.band} has moved to the ${s.stage.name}, ${s.startLabel} — your pick moved with it.`,
+    );
+  } else if (moved.length > 1) {
+    notes.push(
+      `${moved.map((s) => s.band).join(', ')} have changed stage — your picks moved with them.`,
+    );
   }
+
+  if (notes.length) return notes.join(' ');
   return 'Running order updated — some set times may have changed. Double-check your picks.';
 }
 
